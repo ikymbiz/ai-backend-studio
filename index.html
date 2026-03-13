@@ -17,6 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/dockerfile/dockerfile.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/toml/toml.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
 
@@ -98,7 +99,7 @@
                     <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-700 text-sm markdown-body">
                         <p><b>AI Backend Studio</b> 🚀</p>
                         <p>どんなバックエンドAPIを作りますか？</p>
-                        <p style="font-size:11px;color:#94a3b8;">例: 「FastAPIでJWT認証付きのユーザーログインAPIを作って」</p>
+                        <p style="font-size:11px;color:#94a3b8;">例: 「FastAPIでAPIを作って」「Cloudflare WorkerのJSを生成して」</p>
                     </div>
                 </div>
             </div>
@@ -178,7 +179,7 @@
             </div>
         </div>
 
-        <!-- 5. DEPLOY TAB -->
+        <!-- 5. DEPLOY TAB (GCP) -->
         <div id="tab-deploy" class="tab-content p-4 w-full h-full">
             <h2 class="text-base font-bold mb-3 text-slate-200">Deploy to Cloud Run</h2>
             
@@ -228,9 +229,31 @@
             </div>
         </div>
 
+        <!-- WORKER TAB (Cloudflare) -->
+        <div id="tab-worker" class="tab-content p-4 w-full h-full">
+            <h2 class="text-base font-bold mb-3 text-slate-200">Deploy to Cloudflare Worker</h2>
+            
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 mb-4">
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Settingsタブで設定したTokenとAccount IDを使用して、エッジ環境にJavaScript Workerをデプロイします。<br>
+                    <span class="text-yellow-500 text-[10px]"><i class="fa-solid fa-triangle-exclamation"></i> AIにJSとwrangler.tomlを生成させてください</span>
+                </p>
+                <button id="btn-cf-deploy" class="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-400 hover:to-yellow-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-lg text-sm text-slate-900">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Deploy to CF Worker
+                </button>
+            </div>
+            
+            <div class="flex flex-col flex-1">
+                <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold ml-1">Worker Deploy Logs</label>
+                <div class="bg-[#0d1117] rounded-xl border border-slate-700 p-3 flex-1 overflow-y-auto font-mono text-xs" id="cf-deploy-logs">
+                    <div class="text-slate-500">Ready for deployment.</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 6. INFRA TAB -->
         <div id="tab-infra" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">GCP Infrastructure</h2>
+            <h2 class="text-base font-bold mb-3 text-slate-200">Infrastructure</h2>
             
             <!-- Firestore Data Explorer -->
             <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 mb-3">
@@ -261,13 +284,23 @@ service cloud.firestore {
 }</textarea>
             </div>
             
-            <!-- Environment Variables -->
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 flex-1 min-h-[120px] flex flex-col">
+            <!-- GCP Environment Variables -->
+            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 mb-3">
                 <div class="flex justify-between items-center mb-2">
-                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-key text-green-400 mr-2"></i>Env Variables</p>
+                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-key text-green-400 mr-2"></i>GCP Env Variables</p>
                     <button onclick="addEnvVar()" class="text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <div id="env-vars-list" class="space-y-1.5 flex-1 overflow-y-auto">
+                <div id="env-vars-list" class="space-y-1.5 max-h-40 overflow-y-auto">
+                </div>
+            </div>
+
+            <!-- CF Environment Variables -->
+            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 flex-1 min-h-[120px] flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-cloud-bolt text-yellow-400 mr-2"></i>CF Env Variables</p>
+                    <button onclick="addCfEnvVar()" class="text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="cf-env-vars-list" class="space-y-1.5 flex-1 overflow-y-auto">
                 </div>
             </div>
         </div>
@@ -289,6 +322,10 @@ service cloud.firestore {
                             <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</option>
                         </select>
                     </div>
+                    
+                    <div class="mt-4 mb-2 border-t border-slate-700 pt-3">
+                        <span class="text-xs font-bold text-slate-300">GCP / GitHub Settings</span>
+                    </div>
                     <div>
                         <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">GitHub PAT</label>
                         <input type="password" id="set-github" placeholder="ghp_..." class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
@@ -303,6 +340,24 @@ service cloud.firestore {
                             <input type="text" id="set-run" placeholder="backend-api" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none text-sm font-mono">
                         </div>
                     </div>
+
+                    <div class="mt-4 mb-2 border-t border-slate-700 pt-3">
+                        <span class="text-xs font-bold text-slate-300">Cloudflare Worker Settings</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF Account ID</label>
+                            <input type="text" id="set-cf-account" placeholder="Account ID" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF Worker Name</label>
+                            <input type="text" id="set-cf-worker" placeholder="my-worker" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF API Token</label>
+                        <input type="password" id="set-cf-token" placeholder="API Token" class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
+                    </div>
                 </div>
                 
                 <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold active:scale-95 text-sm flex justify-center items-center gap-2">
@@ -313,9 +368,8 @@ service cloud.firestore {
                     <h3 class="font-bold text-xs mb-2 text-yellow-500"><i class="fa-solid fa-lightbulb mr-1"></i> Setup Guide</h3>
                     <ol class="text-[11px] space-y-2 text-slate-300 list-decimal pl-4">
                         <li><a href="https://aistudio.google.com/" target="_blank" class="text-blue-400 underline">Google AI Studio</a>でGemini APIキーを取得</li>
-                        <li><a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" class="text-blue-400 underline">GitHub PAT</a>を作成（repo, workflow権限）</li>
-                        <li>GCPプロジェクトを作成し Cloud Run & Cloud Build APIを有効化</li>
-                        <li>GitHub Secretsに<code class="bg-slate-900 px-1 rounded text-pink-400 text-[10px]">GCP_CREDENTIALS</code>を登録</li>
+                        <li>GCP連携: GitHub PATを作成し、GCPプロジェクトとCloud Run連携</li>
+                        <li>CF連携: Cloudflare DashboardからAccount IDとAPI Tokenを取得</li>
                     </ol>
                 </div>
                 
@@ -328,7 +382,7 @@ service cloud.firestore {
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="bg-slate-900 border-t border-slate-800 grid grid-cols-7 h-[calc(var(--nav-height)+var(--safe-bottom))] pb-[var(--safe-bottom)] shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.3)] relative z-20">
+    <nav class="bg-slate-900 border-t border-slate-800 grid grid-cols-8 h-[calc(var(--nav-height)+var(--safe-bottom))] pb-[var(--safe-bottom)] shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.3)] relative z-20">
         <button class="nav-btn nav-active flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-chat">
             <i class="fa-solid fa-message text-[16px]"></i><span class="text-[8px] font-bold">CHAT</span>
         </button>
@@ -342,7 +396,10 @@ service cloud.firestore {
             <i class="fa-solid fa-flask text-[16px]"></i><span class="text-[8px] font-bold">TEST</span>
         </button>
         <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-deploy">
-            <i class="fa-solid fa-rocket text-[16px]"></i><span class="text-[8px] font-bold">DEPLOY</span>
+            <i class="fa-solid fa-rocket text-[16px]"></i><span class="text-[8px] font-bold">GCP</span>
+        </button>
+        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-worker">
+            <i class="fa-solid fa-cloud-bolt text-[16px]"></i><span class="text-[8px] font-bold">WORKER</span>
         </button>
         <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-infra">
             <i class="fa-solid fa-server text-[16px]"></i><span class="text-[8px] font-bold">INFRA</span>
@@ -402,13 +459,13 @@ service cloud.firestore {
             infra: 'id, rules, envVars, collections'
         });
 
-        let currentSettings = { gemini: '', github: '', gcp: '', run: '', model: 'gemini-2.5-flash' };
+        let currentSettings = { gemini: '', github: '', gcp: '', run: '', model: 'gemini-2.5-flash', cfAccount: '', cfToken: '', cfWorker: '' };
         let activeFile = null;
         let editor = null;
         let wakeLock = null;
         let isGenerating = false;
         let ghImportRepos = [];
-        let infraData = { rules: '', envVars: [], collections: [] };
+        let infraData = { rules: '', envVars: [], collections: [], cfEnvVars: [] };
 
         const elStatusText = document.querySelector('.status-text');
         const elStatusDot = document.querySelector('.status-dot');
@@ -443,7 +500,7 @@ service cloud.firestore {
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             system_instruction: {
-                                parts: [{text: \`You are an expert Python backend developer creating API applications (FastAPI/Flask) for Google Cloud Run.
+                                parts: [{text: \`You are an expert full-stack developer creating API applications (FastAPI/Flask for GCP Cloud Run, or JavaScript/TypeScript for Cloudflare Workers).
 Your response MUST be a valid JSON object and NOTHING ELSE. No markdown, no extra text.
 Format:
 {
@@ -452,7 +509,8 @@ Format:
     { "path": "main.py", "content": "full file content here" }
   ]
 }
-If modifying existing files, return the FULL updated content. Always include ALL project files (main.py, requirements.txt, Dockerfile at minimum).
+If generating a Cloudflare Worker, ALWAYS include wrangler.toml and an entry point file (e.g., src/index.js or index.js).
+If modifying existing files, return the FULL updated content. Always include ALL project files.
 Use Japanese for the message field.\`}]
                             },
                             contents: contents,
@@ -508,19 +566,22 @@ Use Japanese for the message field.\`}]
         async function initApp() {
             const saved = await db.settings.get('default');
             if (saved) {
-                currentSettings = saved;
+                currentSettings = { ...currentSettings, ...saved };
                 document.getElementById('set-gemini').value = saved.gemini || '';
                 document.getElementById('set-github').value = saved.github || '';
                 document.getElementById('set-gcp').value = saved.gcp || '';
                 document.getElementById('set-run').value = saved.run || '';
                 document.getElementById('set-model').value = saved.model || 'gemini-2.5-flash';
                 document.getElementById('deploy-repo').value = saved.run || '';
+                document.getElementById('set-cf-account').value = saved.cfAccount || '';
+                document.getElementById('set-cf-token').value = saved.cfToken || '';
+                document.getElementById('set-cf-worker').value = saved.cfWorker || '';
             }
 
             // Load infra data
             const savedInfra = await db.infra.get('default');
             if (savedInfra) {
-                infraData = savedInfra;
+                infraData = { ...infraData, ...savedInfra };
                 document.getElementById('firestore-rules').value = infraData.rules || '';
             }
 
@@ -562,7 +623,10 @@ Use Japanese for the message field.\`}]
                 github: document.getElementById('set-github').value.trim(),
                 gcp: document.getElementById('set-gcp').value.trim(),
                 run: document.getElementById('set-run').value.trim(),
-                model: document.getElementById('set-model').value
+                model: document.getElementById('set-model').value,
+                cfAccount: document.getElementById('set-cf-account').value.trim(),
+                cfToken: document.getElementById('set-cf-token').value.trim(),
+                cfWorker: document.getElementById('set-cf-worker').value.trim()
             };
             await db.settings.put(currentSettings);
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Saved!';
@@ -646,8 +710,9 @@ Use Japanese for the message field.\`}]
                         }
                     }
                     renderFileList();
-                    if(!activeFile && r.files.find(f => f.path === 'main.py')) openFile('main.py');
-                    else if (r.files.length > 0) openFile(r.files[0].path);
+                    if(!activeFile && r.files.find(f => f.path.includes('index.js') || f.path === 'main.py')) {
+                        openFile(r.files.find(f => f.path.includes('index.js') || f.path === 'main.py').path);
+                    } else if (r.files.length > 0) openFile(r.files[0].path);
                 }
             } else {
                 let errMsg = `**Error:** ${e.data.error}`;
@@ -660,8 +725,9 @@ Use Japanese for the message field.\`}]
         function getModeForPath(path) {
             if (path.endsWith('.py')) return 'python';
             if (path.endsWith('.yml') || path.endsWith('.yaml')) return 'yaml';
+            if (path.endsWith('.toml')) return 'toml';
             if (path.includes('Dockerfile')) return 'dockerfile';
-            if (path.endsWith('.json')) return 'javascript';
+            if (path.endsWith('.json') || path.endsWith('.js') || path.endsWith('.ts')) return 'javascript';
             if (path.endsWith('.md')) return 'markdown';
             return 'text/plain';
         }
@@ -669,10 +735,12 @@ Use Japanese for the message field.\`}]
         function getIconForPath(path) {
             if (path.endsWith('.py')) return '<i class="fa-brands fa-python text-yellow-400 w-4"></i>';
             if (path.endsWith('.yml') || path.endsWith('.yaml')) return '<i class="fa-solid fa-gear text-purple-400 w-4"></i>';
+            if (path.endsWith('.toml')) return '<i class="fa-solid fa-file-code text-slate-300 w-4"></i>';
             if (path.includes('Dockerfile')) return '<i class="fa-brands fa-docker text-blue-400 w-4"></i>';
             if (path.endsWith('.txt')) return '<i class="fa-solid fa-file-lines text-slate-300 w-4"></i>';
             if (path.endsWith('.md')) return '<i class="fa-solid fa-file-alt text-slate-300 w-4"></i>';
             if (path.endsWith('.json')) return '<i class="fa-solid fa-brackets-curly text-green-400 w-4"></i>';
+            if (path.endsWith('.js') || path.endsWith('.ts')) return '<i class="fa-brands fa-js text-yellow-400 w-4"></i>';
             return '<i class="fa-solid fa-file text-slate-400 w-4"></i>';
         }
 
@@ -701,6 +769,7 @@ Use Japanese for the message field.\`}]
             if (!file) return;
             activeFile = path;
             document.getElementById('current-file-name').textContent = path;
+            document.getElementById('code-file-icon').outerHTML = getIconForPath(path).replace('w-4', 'id="code-file-icon"');
             editor.setOption("mode", getModeForPath(path));
             editor.setValue(file.content);
             document.getElementById('save-status').textContent = 'Loaded';
@@ -711,7 +780,7 @@ Use Japanese for the message field.\`}]
         };
 
         window.createNewFile = async function() {
-            const path = prompt("ファイルパスを入力 (例: models/user.py):");
+            const path = prompt("ファイルパスを入力 (例: src/index.js):");
             if (path && path.trim()) {
                 if (await db.files.get(path)) return alert("既に存在します");
                 await db.files.put({ path, content: "", type: getModeForPath(path), timestamp: Date.now() });
@@ -813,7 +882,6 @@ Use Japanese for the message field.\`}]
             });
 
             try {
-                // 0. Get username
                 addDeployLog('認証中...', 'text-blue-400');
                 const userRes = await gh('/user');
                 if (!userRes.ok) throw new Error('認証失敗 (' + userRes.status + ')');
@@ -821,7 +889,6 @@ Use Japanese for the message field.\`}]
                 const username = user.login;
                 addDeployLog(`✓ ${username} として認証`, 'text-green-400');
 
-                // 1. Check/Create repo
                 addDeployLog(`リポジトリ ${repoName} を確認中...`);
                 let repoRes = await gh(`/repos/${username}/${repoName}`);
                 if (!repoRes.ok) {
@@ -838,7 +905,6 @@ Use Japanese for the message field.\`}]
                     addDeployLog('✓ 既存リポジトリを使用', 'text-green-400');
                 }
 
-                // 2. Generate CI/CD yml if enabled
                 const cicdEnabled = document.getElementById('toggle-cicd').classList.contains('on');
                 if (cicdEnabled) {
                     addDeployLog('deploy.yml を生成中...', 'text-yellow-400');
@@ -866,7 +932,6 @@ jobs:
                     addDeployLog('✓ deploy.yml 追加', 'text-green-400');
                 }
 
-                // 3. Push all files
                 const allFiles = await db.files.toArray();
                 addDeployLog(`${allFiles.length} ファイルをプッシュ中...`);
 
@@ -883,7 +948,6 @@ jobs:
 
                     let putRes = await gh(url, { method: 'PUT', body: JSON.stringify(body) });
 
-                    // Retry on conflict
                     if (putRes.status === 409 || putRes.status === 422) {
                         addDeployLog(`  ${f.path}: SHA conflict, retrying...`, 'text-yellow-400');
                         try {
@@ -901,7 +965,6 @@ jobs:
                     }
                 }
 
-                // 4. Enable GitHub Pages if toggled
                 const pagesEnabled = document.getElementById('toggle-pages').classList.contains('on');
                 if (pagesEnabled) {
                     addDeployLog('GitHub Pages を有効化中...', 'text-blue-400');
@@ -914,7 +977,6 @@ jobs:
                     } catch (e) { addDeployLog('Pages: 既に有効化済み or error', 'text-slate-400'); }
                 }
 
-                // 5. Check GitHub Actions status if CI/CD enabled
                 if (cicdEnabled) {
                     addDeployLog('GitHub Actions ワークフロー起動待ち...', 'text-purple-400');
                     await new Promise(r => setTimeout(r, 5000));
@@ -931,7 +993,6 @@ jobs:
                     } catch (e) {}
                 }
 
-                // 6. Show results
                 const repoUrl = `https://github.com/${username}/${repoName}`;
                 addDeployLog('', 'text-slate-700');
                 addDeployLog(`✅ デプロイ完了！`, 'text-green-400 font-bold');
@@ -1031,7 +1092,7 @@ jobs:
             document.getElementById('gh-import-step-file').style.display = 'none';
         }
 
-        /* ====================== 12. INFRA (Firestore, Env Vars) ====================== */
+        /* ====================== 12. INFRA (Firestore, Env Vars, CF Env) ====================== */
         async function saveInfraData() {
             infraData.rules = document.getElementById('firestore-rules').value;
             infraData.id = 'default';
@@ -1041,9 +1102,9 @@ jobs:
         function renderInfra() {
             renderCollections();
             renderEnvVars();
+            renderCfEnvVars();
         }
 
-        // Collections
         function renderCollections() {
             const container = document.getElementById('firestore-collections');
             container.innerHTML = '';
@@ -1123,7 +1184,6 @@ jobs:
             document.getElementById('doc-editor-modal').classList.remove('show');
         };
 
-        // Env Vars
         function renderEnvVars() {
             const container = document.getElementById('env-vars-list');
             container.innerHTML = '';
@@ -1160,7 +1220,42 @@ jobs:
             saveInfraData();
         };
 
-        // AI Rule Generation
+        function renderCfEnvVars() {
+            const container = document.getElementById('cf-env-vars-list');
+            container.innerHTML = '';
+            if (!infraData.cfEnvVars || infraData.cfEnvVars.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 text-center py-3">No CF env vars</div>';
+                return;
+            }
+            infraData.cfEnvVars.forEach((ev, i) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700';
+                div.innerHTML = `
+                    <input type="text" value="${ev.key}" class="w-1/3 bg-transparent text-xs text-yellow-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateCfEnvVar(${i}, 'key', this.value)">
+                    <span class="text-slate-500">=</span>
+                    <input type="password" value="${ev.value}" class="flex-1 bg-transparent text-xs text-green-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateCfEnvVar(${i}, 'value', this.value)">
+                    <button onclick="removeCfEnvVar(${i})" class="text-slate-500 hover:text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.addCfEnvVar = function() {
+            if (!infraData.cfEnvVars) infraData.cfEnvVars = [];
+            infraData.cfEnvVars.push({ key: 'NEW_KEY', value: '' });
+            saveInfraData(); renderCfEnvVars();
+        };
+
+        window.removeCfEnvVar = function(i) {
+            infraData.cfEnvVars.splice(i, 1);
+            saveInfraData(); renderCfEnvVars();
+        };
+
+        window.updateCfEnvVar = function(i, field, val) {
+            infraData.cfEnvVars[i][field] = val;
+            saveInfraData();
+        };
+
         window.generateRulesWithAI = async function() {
             if (!currentSettings.gemini) return alert('Gemini API Key を設定してください');
             if (!infraData.collections || infraData.collections.length === 0) return alert('先にコレクションを追加してください');
@@ -1184,6 +1279,82 @@ jobs:
                 }
             } catch (e) { alert('Error: ' + e.message); }
         };
+
+        /* ====================== 13. CLOUDFLARE WORKER DEPLOY ====================== */
+        function addCfDeployLog(msg, cls = 'text-slate-300') {
+            const box = document.getElementById('cf-deploy-logs');
+            const el = document.createElement('div');
+            el.className = cls + ' py-0.5';
+            el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            box.appendChild(el);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        document.getElementById('btn-cf-deploy').addEventListener('click', async () => {
+            const token = currentSettings.cfToken;
+            const accountId = currentSettings.cfAccount;
+            const scriptName = currentSettings.cfWorker;
+            
+            if (!token || !accountId || !scriptName) return alert("Settings から Cloudflare の設定(Token, Account ID, Worker Name)を完了してください");
+
+            const btn = document.getElementById('btn-cf-deploy');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deploying...';
+            document.getElementById('cf-deploy-logs').innerHTML = '';
+
+            try {
+                addCfDeployLog('デプロイ準備中...', 'text-blue-400');
+                const allFiles = await db.files.toArray();
+                const jsFiles = allFiles.filter(f => f.path.endsWith('.js') || f.path.endsWith('.ts'));
+                if (jsFiles.length === 0) throw new Error("WorkerのJS/TSファイルが見つかりません。AIに生成させてください。");
+                
+                let mainFile = jsFiles.find(f => f.path === 'src/index.js' || f.path === 'index.js' || f.path === 'worker.js') || jsFiles[0];
+
+                const formData = new FormData();
+                
+                const bindings = [];
+                if (infraData.cfEnvVars) {
+                    infraData.cfEnvVars.forEach(ev => {
+                        if (ev.key && ev.value) {
+                            bindings.push({ name: ev.key, type: "secret_text", text: ev.value });
+                        }
+                    });
+                }
+
+                const metadata = {
+                    main_module: mainFile.path,
+                    bindings: bindings
+                };
+                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                
+                jsFiles.forEach(f => {
+                    const mime = f.path.endsWith('.ts') ? 'application/typescript' : 'application/javascript+module';
+                    formData.append(f.path, new Blob([f.content], { type: mime }), f.path);
+                });
+
+                addCfDeployLog(`Worker [${scriptName}] をアップロード中...`, 'text-yellow-400');
+
+                const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const result = await res.json();
+                if (!res.ok) {
+                    throw new Error(result.errors?.[0]?.message || 'Deploy failed');
+                }
+
+                addCfDeployLog('✓ デプロイ成功！', 'text-green-400 font-bold');
+                addCfDeployLog(`🌐 https://${scriptName}.${accountId}.workers.dev/`, 'text-blue-400');
+
+            } catch (err) {
+                addCfDeployLog(`❌ Error: ${err.message}`, 'text-red-500 font-bold');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Deploy to CF Worker';
+            }
+        });
 
         /* ====================== START ====================== */
         initApp();
