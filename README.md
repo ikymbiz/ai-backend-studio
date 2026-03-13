@@ -1,78 +1,85 @@
 # AI Backend Studio
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Web-lightgrey.svg)
-![AI](https://img.shields.io/badge/AI-Gemini_API-orange.svg)
+AI Backend Studioは、ブラウザ上で完結する**AI駆動型のバックエンド開発・デプロイ環境**です。
+Google Gemini APIを活用して、自然言語のプロンプトからAPIコード（FastAPIやCloudflare Workersなど）を自動生成し、ブラウザ内蔵のエディタで編集、さらにはGCP Cloud RunやCloudflare Workersへのデプロイまでをシームレスに行うことができます。
 
-## 概要・説明
-**AI Backend Studio** は、ブラウザ上で完結するAI駆動のバックエンドAPI開発・デプロイメント環境（SPA）です。
+## 🌟 概要・主な特徴
 
-自然言語で「どんなAPIを作りたいか」をAI（Gemini API）に伝えるだけで、必要なPythonファイル、要件定義、Dockerfileなどを一括生成します。生成されたコードはブラウザ上のエディタで即座に編集でき、内蔵のテストツールでAPIの動作確認が可能です。さらに、GitHubへのコードプッシュと、GitHub Actionsを経由したGoogle Cloud RunへのCI/CDデプロイまで、すべてこのアプリ単体でシームレスに完結します。
+- **オールインワンのWeb IDE**: チャット、コードエディタ、ファイル管理、APIテスト、デプロイ、インフラ管理を一つの画面に統合。
+- **AIアシスタント内蔵**: 要件を伝えるだけで、AIがプロジェクトに必要な複数ファイル（Pythonスクリプト、JS/TS、Dockerfile、デプロイ設定ファイルなど）を一括生成します。
+- **ブラウザ完結のローカル保存**: Dexie.js（IndexedDB）を使用し、すべてのプロジェクトファイルや設定、チャット履歴はブラウザに安全に保存されます。
+- **ワンクリック・デプロイ**: 
+  - **GCP Cloud Run**: GitHub API経由でリポジトリを作成・プッシュし、GitHub Actions（CI/CD）を利用して自動デプロイを行います。
+  - **Cloudflare Workers**: Cloudflare APIを叩き、ブラウザから直接エッジ環境へWorkerスクリプトをデプロイします。
 
-モバイル端末での表示・操作にも最適化されており、いつでもどこでもバックエンド開発からインフラ構築までを行うことができます。
+## 🚀 主な機能一覧
 
-## 主な機能一覧
+### 1. 💬 CHAT (AIチャットアシスタント)
+- Gemini API（Web Worker上で非同期動作）を利用した高速なコード生成。
+- ユーザーのプロンプトと既存のプロジェクトファイルをコンテキストとしてAIに渡し、精度の高いコード改修を実現。
 
-- 💬 **AI チャット駆動開発 (CHAT)**
-  - プロンプトを入力するだけで、Gemini APIがプロジェクトに必要な複数ファイル（`main.py`, `requirements.txt`, `Dockerfile` 等）を文脈を理解して自動生成します。
-- 💻 **コードエディタ (CODE)**
-  - シンタックスハイライト付きの本格的なエディタ（CodeMirror）を搭載。自動保存機能により、作業のやり直しを防ぎます。
-- 📁 **ファイルシステム (FILES)**
-  - IndexedDBを用いた仮想ファイルシステム。ファイルの新規作成・削除、プロジェクト全体のJSONエクスポート/インポート、既存のGitHubリポジトリからのファイルインポートが可能です。
-- 🧪 **APIテスター (TEST)**
-  - PostmanライクなHTTPリクエスト送信ツールを内蔵。メソッド、URL、ヘッダー、ボディ（JSON）を指定して、開発したAPIの挙動を即座にテストできます。
-- 🚀 **ワンクリック・デプロイ (DEPLOY)**
-  - GitHub PATを利用して、指定したリポジトリへコードを一括プッシュ。
-  - GitHub Actionsのワークフローファイル（`deploy.yml`）を自動生成し、Google Cloud Runへのデプロイを完全自動化。GitHub Pagesの有効化もトグル一つで設定可能です。
-- ☁️ **インフラ管理 (INFRA)**
-  - Firestoreのコレクション・ドキュメントの仮想モックエクスプローラー。
-  - コレクション構成からFirestoreのセキュリティルールをAIで自動生成する機能を搭載。環境変数の管理も可能です。
-- ⚙️ **カスタマイズ (SETTINGS)**
-  - 利用するAIモデルの切り替え（Gemini 2.5 Flash / Pro 等）、各種APIキー、GCPプロジェクトIDなどを安全にローカル保存します。
+### 2. 📝 CODE & FILES (エディタとファイル管理)
+- **CodeMirror 5**によるシンタックスハイライト付きエディタ（Python, JS/TS, YAML, TOML, Dockerfile, Markdown対応）。
+- 仮想ファイルシステムでの新規作成、削除、ブラウザ内オートセーブ。
+- プロジェクト全体のJSONエクスポート/インポート機能。
+- GitHubリポジトリからのファイル直接インポート機能。
 
-## 使用技術・ライブラリ
+### 3. 🧪 TEST (APIテスター)
+- Postmanライクな組み込みHTTPクライアント。
+- メソッド（GET, POST, PUT, DELETE, PATCH）、URL、JSONヘッダー・ボディを指定してAPIの動作検証が可能。
 
-本プロジェクトはビルドツールを必要としないピュアなHTML/JS/CSS構成で、モダンなライブラリをCDN経由で活用しています。
+### 4. ☁️ DEPLOY (デプロイ機能)
+- **GCPタブ**: GitHubリポジトリへのプッシュから、`deploy.yml` の自動生成を通じたCloud RunへのCI/CDパイプライン構築。
+- **WORKERタブ**: ローカルのJS/TSファイルをCloudflare Workersへ直接アップロード＆デプロイ。
 
-**フロントエンド・UI**
-- HTML5 / CSS3 / Vanilla JavaScript
-- **Tailwind CSS** (スタイリング)
-- **FontAwesome** (アイコン)
+### 5. 🛠 INFRA (インフラ・環境変数管理)
+- **Firestore Explorer**: 仮想的なFirestoreのコレクション・ドキュメント（JSON）エディタ。
+- **Security Rules**: Firestoreのセキュリティルールを管理。AIによるルール自動生成機能付き。
+- GCPおよびCloudflare向けの環境変数（Environment Variables）の追加・管理機能。
 
-**エディタ・マークダウン解析**
-- **CodeMirror 5** (コードエディタ / Python, YAML, Dockerfile, JS, Markdown対応)
-- **Marked.js** (MarkdownのHTML変換)
-- **DOMPurify** (サニタイズによるXSS対策)
+### 6. ⚙️ CFG (設定)
+- Gemini APIキー、AIモデルの選択（Flash/Pro等）。
+- GitHub PAT（Personal Access Token）設定。
+- GCP Project ID、Cloud Runサービス名の設定。
+- Cloudflare Account ID、API Token、Worker名の設定。
 
-**データ保存**
-- **Dexie.js** (IndexedDBラッパー / オフラインでのファイル・履歴・設定保存)
+## 🛠 使用技術・ライブラリ
 
-**外部API・連携サービス**
-- **Google Gemini API** (AIによるコード生成・解析)
-- **GitHub REST API** (リポジトリ作成、ファイルプッシュ、インポート)
-- **Google Cloud Run / Actions** (自動デプロイ先として想定)
+- **フロントエンド**: HTML5, CSS3, JavaScript (Vanilla)
+- **スタイリング**: Tailwind CSS (CDN)
+- **アイコン**: FontAwesome 6
+- **エディタ**: CodeMirror 5
+- **データベース**: Dexie.js (IndexedDB)
+- **Markdown処理**: marked.js, DOMPurify
+- **AI連携**: Google Gemini API (v1beta)
+- **その他API**: GitHub REST API, Cloudflare API
 
-## セットアップ・使い方
+## 📦 セットアップ・使い方
 
-本アプリはサーバーレスで動作します。HTMLファイルをブラウザで開くだけで即座に利用を開始できます。
+このアプリケーションはバックエンドサーバーを必要としません。単一のHTMLファイルとして動作します。
 
-### 1. 事前準備
-本アプリのフル機能を活用するために、以下の情報を取得・準備してください。
-1. **Gemini API キー**: [Google AI Studio](https://aistudio.google.com/) から取得します。
-2. **GitHub PAT (Personal Access Token)**: [GitHub Developer Settings](https://github.com/settings/tokens/new?scopes=repo,workflow) で `repo`, `workflow` 権限を付与して作成します。
-3. **GCPの準備**: Google Cloudプロジェクトを作成し、`Cloud Run API` と `Cloud Build API` を有効化します。
-4. **GCP 認証情報**: GitHub Actionsからデプロイするため、GCPのサービスアカウントキー（JSON）を発行し、デプロイ先GitHubリポジトリのSecretsに `GCP_CREDENTIALS` という名前で登録しておきます。
+### ステップ 1: アプリの起動
+1. 本リポジトリの `index.html` をダウンロードします。
+2. ブラウザ（Chrome, Edge, Firefox, Safari等）で直接ファイルを開きます。
+   *※ クリップボードAPIや一部の機能を利用するため、ローカルサーバー（VS CodeのLive Serverなど）経由での起動を推奨します。*
 
-### 2. 初期設定
-1. 本HTMLファイルをブラウザ（Chrome推奨）で開きます。
-2. 下部ナビゲーションから **CFG (Settings)** タブを開きます。
-3. 取得した「Gemini API Key」「GitHub PAT」「GCP Project ID」「Cloud Run Service 名」を入力し、**Save** ボタンを押してローカルに保存します。
+### ステップ 2: 初期設定
+1. アプリ画面下部のナビゲーションから **CFG (⚙️)** タブを開きます。
+2. [Google AI Studio](https://aistudio.google.com/) で取得した **Gemini API Key** を入力します。
+3. （オプション）デプロイ機能を利用する場合は、以下の情報を入力して `Save` ボタンを押します。
+   - **GCP用**: GitHub PAT、GCP Project ID
+   - **Cloudflare用**: CF Account ID、CF API Token、Worker Name
 
-### 3. アプリケーションの開発とデプロイ
-1. **開発**: **CHAT** タブで「FastAPIでJWT認証付きのログインAPIを作って」と入力し送信します。
-2. **確認・編集**: AIがコードを生成し終わると、**FILES** タブにファイル一覧が表示されます。**CODE** タブで内容を確認・修正します。
-3. **デプロイ**: **DEPLOY** タブを開き、作成したいGitHubリポジトリ名を入力します。CI/CD WorkflowのトグルをONにして **Push & Deploy** をクリックします。
-4. **テスト**: デプロイが完了し、Cloud RunのURLが発行されたら、**TEST** タブでそのURLに向けてリクエストを送信し、正しく動作するか確認します。
+### ステップ 3: 開発フロー
+1. **コード生成**: **CHAT** タブで「Cloudflare WorkerでJSONを返すAPIを作って」と入力し、送信ボタンを押します。
+2. **コード確認**: **FILES** タブに生成されたファイル（`index.js` 等）が表示されます。タップして **CODE** タブで内容を確認・編集します。
+3. **デプロイ**: 
+   - Cloudflareの場合は **WORKER** タブから `Deploy to CF Worker` をクリックします。
+   - GCPの場合は **GCP** タブからリポジトリ名を入力し `Push & Deploy` をクリックします。
+4. **テスト検証**: 発行されたエンドポイントURLを **TEST** タブに入力し、リクエストを送信して動作を確認します。
 
 ---
-*Note: 本アプリに保存されたコードやAPIキーなどのデータは、すべてブラウザのローカルストレージ（IndexedDB）内にのみ安全に保存されます。*
+
+**⚠️ 注意事項**
+- 本ツールで扱うAPIキーやトークンは、すべてブラウザ内のIndexedDBにのみ保存され、外部サーバーには送信されません（各公式APIの直接呼び出しを除く）。
+- セキュリティ保護のため、他人がアクセスできる共有PCでの利用後は、CFGタブ最下部の「全データ削除」を実行してください。
