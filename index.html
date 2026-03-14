@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Worker Studio</title>
+    <title>AI Backend Studio</title>
     <!-- PWA用 マニフェストとテーマカラー -->
     <meta name="theme-color" content="#f1f5f9">
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22AI%20Worker%20Studio%22%2C%22short_name%22%3A%22AWS%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f1f5f9%22%2C%22theme_color%22%3A%22%23f1f5f9%22%7D">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22AI%20Backend%20Studio%22%2C%22short_name%22%3A%22ABS%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f1f5f9%22%2C%22theme_color%22%3A%22%23f1f5f9%22%7D">
     
     <!-- 外部ライブラリ (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -51,7 +51,7 @@
     <header class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md text-gray-800 p-3 pt-safe border-b border-slate-200 shadow-sm z-20 shrink-0">
         <div class="font-extrabold text-lg truncate flex items-center gap-1.5">
             <span class="text-xl">⚡️</span> 
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">AWS</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">AI Backend Studio</span>
         </div>
         <div class="flex gap-2 shrink-0">
             <button onclick="saveProject()" class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-base transition-all active:scale-95 shadow-sm text-blue-600" title="保存">💾</button>
@@ -66,11 +66,12 @@
     <aside class="hidden md:flex w-64 bg-dark text-slate-300 flex-col z-20 shadow-2xl shrink-0">
         <div class="p-6 text-xl font-extrabold border-b border-slate-800/80 flex items-center gap-2">
             <span class="text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">⚡️</span> 
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">AI Worker Studio</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">AI Backend Studio</span>
         </div>
         <nav class="flex-1 p-3 space-y-1.5 mt-2">
             <button onclick="switchTab('chat')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-chat"><span>💬</span> 要件定義</button>
             <button onclick="switchTab('code')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-code"><span>💻</span> コード編集</button>
+            <button onclick="switchTab('test')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-test"><span>🧪</span> テスト</button>
             <button onclick="switchTab('deploy')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-deploy"><span>🚀</span> デプロイ</button>
             <button onclick="switchTab('settings')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-settings"><span>⚙️</span> 設定</button>
         </nav>
@@ -123,23 +124,19 @@
                 <!-- Javascriptで描画 -->
             </div>
             
-            <!-- 対話型要件定義 UI (リッチ化) -->
+            <!-- 対話型要件定義 UI -->
             <div class="mt-auto flex flex-col gap-3 w-full shrink-0 sticky bottom-0 z-10 pt-2 pb-2 bg-gradient-to-t from-slate-100 via-slate-100 to-transparent">
                 <div class="flex gap-2 w-full relative group shadow-lg shadow-slate-200/50 rounded-2xl">
-                    <textarea id="chat-input" class="flex-1 border border-slate-200 p-4 pr-16 rounded-2xl resize-none text-base focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all duration-300 bg-white" rows="2" placeholder="作りたいアプリのアイデアを入力..."></textarea>
+                    <textarea id="chat-input" class="flex-1 border border-slate-200 p-4 pr-16 rounded-2xl resize-none text-base focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all duration-300 bg-white" rows="2" placeholder="作りたいアプリの要件やアイデアを入力..."></textarea>
                     <button onclick="sendChatMessage()" class="absolute right-2.5 bottom-2.5 bg-gradient-to-br from-primary to-blue-600 text-white p-3 rounded-xl hover:from-blue-600 hover:to-blue-700 font-bold shadow-md shadow-blue-500/30 transition-all duration-300 active:scale-95 shrink-0 flex items-center justify-center h-11 w-11" title="送信">
                         <svg class="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V6m0 0l-7 7m7-7l7 7"></path></svg>
                     </button>
                 </div>
-                <button onclick="generateCodeFromChat()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl hover:from-teal-500 hover:to-teal-600 font-extrabold shadow-xl shadow-emerald-500/20 transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 text-lg">
-                    <span class="text-2xl drop-shadow-md">⚡️</span> 要件からコードを生成する
-                </button>
             </div>
         </div>
 
         <!-- タブ: コード (編集) -->
         <div id="tab-code" class="tab-content flex-col md:flex-row h-full relative">
-            <!-- 【モバイル】ファイル一覧トグルボタン -->
             <div class="md:hidden flex justify-between items-center bg-white p-3.5 border-b border-slate-200 shadow-sm shrink-0 z-10">
                 <div class="flex items-center gap-2 truncate">
                     <span class="text-xl">📄</span>
@@ -150,7 +147,6 @@
                 </button>
             </div>
 
-            <!-- ファイル一覧パネル -->
             <div id="file-list-container" class="hidden md:flex flex-col w-full md:w-64 border-r border-slate-200 bg-white absolute md:relative z-20 inset-0 md:inset-auto shadow-2xl md:shadow-none transition-all duration-300">
                 <div class="p-5 font-extrabold border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
                     <span class="text-slate-700 tracking-wide">エクスプローラー</span>
@@ -161,6 +157,63 @@
             
             <div class="flex-1 relative w-full h-full bg-[#272822]">
                 <div id="editor"></div>
+            </div>
+        </div>
+
+        <!-- タブ: テスト (動作確認) -->
+        <div id="tab-test" class="tab-content flex-col h-full p-4 md:p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+            <h2 class="text-2xl md:text-3xl font-extrabold mb-6 text-slate-800 tracking-tight">🧪 Workerテスト <span class="text-sm font-normal text-slate-500 ml-2">(ローカルシミュレーション)</span></h2>
+            <div class="space-y-6">
+                
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all">
+                    <h3 class="font-extrabold text-lg mb-4 text-slate-800">リクエスト設定</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="md:col-span-1">
+                            <label class="block mb-2 text-sm font-bold text-slate-600">Method</label>
+                            <select id="test-method" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl focus:ring-4 focus:ring-primary/20 outline-none cursor-pointer">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="OPTIONS">OPTIONS</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-sm font-bold text-slate-600">URL Path (例: /api/users)</label>
+                            <input type="text" id="test-url" value="/" placeholder="/path/to/api" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl focus:ring-4 focus:ring-primary/20 outline-none font-mono">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold text-slate-600">Headers (JSON形式)</label>
+                        <textarea id="test-headers" rows="2" placeholder='{"Content-Type": "application/json"}' class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl focus:ring-4 focus:ring-primary/20 outline-none font-mono"></textarea>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block mb-2 text-sm font-bold text-slate-600">Request Body</label>
+                        <textarea id="test-body" rows="3" placeholder='{"key": "value"}' class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl focus:ring-4 focus:ring-primary/20 outline-none font-mono"></textarea>
+                    </div>
+                    <button onclick="runWorkerTest()" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4.5 rounded-2xl font-extrabold hover:from-indigo-500 hover:to-indigo-600 text-lg shadow-xl shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 h-16">
+                        ▶️ 現在のコードでテスト実行
+                    </button>
+                </div>
+
+                <!-- テスト結果表示 -->
+                <div class="bg-slate-900 rounded-2xl p-1 shadow-2xl relative overflow-hidden border border-slate-800">
+                    <div class="absolute top-0 left-0 right-0 px-4 py-2.5 bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 text-xs text-slate-400 font-mono flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-red-500/80"></div><div class="w-3 h-3 rounded-full bg-yellow-500/80"></div><div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                            </div>
+                            <span class="ml-2 font-semibold tracking-wider opacity-80">Response Data</span>
+                        </div>
+                        <span id="test-status-code" class="font-bold text-white bg-slate-700 px-2.5 py-1 rounded text-[11px]">---</span>
+                    </div>
+                    <div class="mt-10 p-5 text-emerald-400 font-mono text-xs md:text-sm h-64 overflow-y-auto break-all flex flex-col gap-3">
+                        <div class="text-slate-500 uppercase tracking-wider text-[10px]">Headers:</div>
+                        <pre id="test-response-headers" class="text-blue-300 whitespace-pre-wrap"></pre>
+                        <div class="text-slate-500 uppercase tracking-wider text-[10px] border-t border-slate-800 pt-2 mt-2">Body:</div>
+                        <pre id="test-response-body" class="whitespace-pre-wrap">Waiting for execution...</pre>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -197,6 +250,20 @@
             <h2 class="text-2xl md:text-3xl font-extrabold mb-6 text-slate-800 tracking-tight">⚙️ 環境設定</h2>
             <div class="space-y-6 pb-12">
                 
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all hover:shadow-lg">
+                    <h3 class="font-extrabold text-lg mb-5 text-slate-800 flex items-center gap-2"><span class="text-indigo-500 text-xl">🧠</span> AI プロンプト定義</h3>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">システムプロンプト (AIの役割・会話の振る舞い)</label>
+                            <textarea id="system-prompt" rows="3" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono" placeholder="例: あなたは熟練のWebエンジニアです。ステップバイステップで要件をヒアリングしてください。"></textarea>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">Cloudflare Worker コード生成要件 (制約事項など)</label>
+                            <textarea id="cf-worker-prompt" rows="3" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono" placeholder="例: 必ずCORSヘッダーを含めること。外部ライブラリは使用せず標準APIだけで記述すること。"></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all hover:shadow-lg">
                     <h3 class="font-extrabold text-lg mb-5 text-slate-800 flex items-center gap-2"><span class="text-blue-500 text-xl">🤖</span> AI エンジン API Keys</h3>
                     <div class="space-y-5">
@@ -244,49 +311,37 @@
 
     </main>
 
-    <!-- 【モバイル専用】ボトムナビゲーション (スマート化・固定) -->
+    <!-- 【モバイル専用】ボトムナビゲーション -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md text-slate-400 flex border-t border-slate-100 z-30 pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.03)] h-[64px]">
-        <button onclick="switchTab('chat')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile text-primary transition-all" id="nav-mobile-chat">
-            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💬</span>要件
+        <button onclick="switchTab('chat')" class="flex-1 py-1.5 text-center text-[10px] sm:text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile text-primary transition-all" id="nav-mobile-chat">
+            <span class="text-xl sm:text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💬</span>要件
         </button>
-        <button onclick="switchTab('code')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-code">
-            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💻</span>コード
+        <button onclick="switchTab('code')" class="flex-1 py-1.5 text-center text-[10px] sm:text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-code">
+            <span class="text-xl sm:text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💻</span>コード
         </button>
-        <button onclick="switchTab('deploy')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-deploy">
-            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">🚀</span>デプロイ
+        <button onclick="switchTab('test')" class="flex-1 py-1.5 text-center text-[10px] sm:text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-test">
+            <span class="text-xl sm:text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">🧪</span>テスト
         </button>
-        <button onclick="switchTab('settings')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-settings">
-            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">⚙️</span>設定
+        <button onclick="switchTab('deploy')" class="flex-1 py-1.5 text-center text-[10px] sm:text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-deploy">
+            <span class="text-xl sm:text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">🚀</span>デプロイ
+        </button>
+        <button onclick="switchTab('settings')" class="flex-1 py-1.5 text-center text-[10px] sm:text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-settings">
+            <span class="text-xl sm:text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">⚙️</span>設定
         </button>
     </nav>
 
     <script>
         // === グローバル状態 ===
         let appState = {
-            files: [], // {name: 'index.js', content: '...'}
+            files: [],
             currentFileIndex: 0,
             timestamp: null,
-            chatMessages: [] // 会話履歴 [{role: 'user'|'assistant', content: '...'}]
+            chatMessages: []
         };
         let editor;
         let saveTimeout;
         let wakeLock = null;
-
-        // === PWA Service Worker 動的登録 ===
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                const CACHE_NAME = 'ai-worker-studio-v4';
-                self.addEventListener('install', e => self.skipWaiting());
-                self.addEventListener('activate', e => self.clients.claim());
-                self.addEventListener('fetch', e => {
-                    e.respondWith(
-                        fetch(e.request).catch(() => caches.match(e.request))
-                    );
-                });
-            `;
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
-        }
+        let testWorker = null; // テスト実行用のWebWorker
 
         // === AI動的Web Worker作成 ===
         const aiWorkerCode = `
@@ -296,79 +351,52 @@
                 let resultText = "";
                 
                 if (model === 'gemini') {
-                    if(!geminiKey) throw new Error("Gemini API Keyが未設定です。設定タブを確認してください。");
-                    
+                    if(!geminiKey) throw new Error("API Key未設定");
                     const contents = messages.map(m => ({
                         role: m.role === 'user' ? 'user' : 'model',
                         parts: [{ text: m.content }]
                     }));
-                    
                     const generationConfig = isCodeGeneration ? { response_mime_type: "application/json" } : {};
-                    
                     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents, generationConfig })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents, generationConfig })
                     });
                     const data = await response.json();
                     if(data.error) throw new Error(data.error.message);
                     resultText = data.candidates[0].content.parts[0].text;
                 } 
                 else if (model === 'claude') {
-                    if(!claudeKey) throw new Error("Claude API Keyが未設定です。設定タブを確認してください。");
-                    
+                    if(!claudeKey) throw new Error("API Key未設定");
                     const anthropicMessages = messages.map(m => ({
                         role: m.role === 'user' ? 'user' : 'assistant',
                         content: m.content
                     }));
-                    
                     const response = await fetch('https://api.anthropic.com/v1/messages', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': claudeKey,
-                            'anthropic-version': '2023-06-01',
-                            'anthropic-dangerous-direct-browser-access': 'true'
+                            'Content-Type': 'application/json', 'x-api-key': claudeKey,
+                            'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'
                         },
-                        body: JSON.stringify({
-                            model: 'claude-3-5-sonnet-20240620',
-                            max_tokens: 4000,
-                            messages: anthropicMessages
-                        })
+                        body: JSON.stringify({ model: 'claude-3-5-sonnet-20240620', max_tokens: 4000, messages: anthropicMessages })
                     });
                     const data = await response.json();
                     if(data.error) throw new Error(data.error.message);
                     resultText = data.content[0].text;
                 }
                 else if (model === 'gpt') {
-                    if(!openaiKey) throw new Error("OpenAI API Keyが未設定です。設定タブを確認してください。");
-                    
+                    if(!openaiKey) throw new Error("API Key未設定");
                     const openaiMessages = messages.map(m => ({
-                        role: m.role === 'user' ? 'user' : 'assistant',
-                        content: m.content
+                        role: m.role === 'user' ? 'user' : 'assistant', content: m.content
                     }));
-                    
-                    const bodyPayload = {
-                        model: 'gpt-3.5-turbo',
-                        messages: openaiMessages
-                    };
-                    if(isCodeGeneration) {
-                        bodyPayload.response_format = { type: "json_object" };
-                    }
-                    
+                    const bodyPayload = { model: 'gpt-3.5-turbo', messages: openaiMessages };
+                    if(isCodeGeneration) bodyPayload.response_format = { type: "json_object" };
                     const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + openaiKey
-                        },
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + openaiKey },
                         body: JSON.stringify(bodyPayload)
                     });
                     const data = await response.json();
                     if(data.error) throw new Error(data.error.message);
                     resultText = data.choices[0].message.content;
                 }
-
                 self.postMessage({ success: true, data: resultText, isCodeGeneration });
             } catch (err) {
                 self.postMessage({ success: false, error: err.message, isCodeGeneration });
@@ -381,37 +409,22 @@
         function showLoading(text) {
             document.getElementById('loading-text').innerText = text;
             const overlay = document.getElementById('loading-overlay');
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.classList.remove('hidden'); overlay.classList.add('flex');
         }
         function hideLoading() {
             const overlay = document.getElementById('loading-overlay');
-            overlay.classList.remove('flex');
-            overlay.classList.add('hidden');
+            overlay.classList.remove('flex'); overlay.classList.add('hidden');
         }
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-            } catch (err) { console.warn('WakeLock:', err.message); }
-        }
-        function releaseWakeLock() {
-            if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-        }
+        async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+        function releaseWakeLock() { if (wakeLock !== null) { wakeLock.release(); wakeLock = null; } }
 
         // === 初期化 ===
         window.onload = async () => {
-            // エディタの初期化
             editor = ace.edit("editor");
             editor.setTheme("ace/theme/monokai");
             editor.session.setMode("ace/mode/javascript");
-            editor.setOptions({
-                fontSize: window.innerWidth < 768 ? "13px" : "15px",
-                scrollPastEnd: 0.5,
-                wrap: true
-            });
+            editor.setOptions({ fontSize: window.innerWidth < 768 ? "13px" : "15px", scrollPastEnd: 0.5, wrap: true });
             
-            // オートセーブ
             editor.session.on('change', () => {
                 if(appState.files.length > 0) {
                     appState.files[appState.currentFileIndex].content = editor.getValue();
@@ -423,17 +436,13 @@
             await loadSettings();
             await loadProject();
             await updateBackupList();
-            
-            // UI初期化 (Chatタブ表示)
             switchTab('chat');
         };
 
-        // === タブ切り替え ===
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
             
-            // PC Navigation Styling (Rich Update)
             document.querySelectorAll('.nav-btn-pc').forEach(el => {
                 el.classList.remove('bg-slate-800/80', 'text-white', 'border-primary');
                 el.classList.add('border-transparent', 'text-slate-300');
@@ -444,20 +453,16 @@
                 activeNavPc.classList.add('bg-slate-800/80', 'text-white', 'border-primary');
             }
 
-            // Mobile Navigation Styling
             document.querySelectorAll('.nav-btn-mobile').forEach(el => {
-                el.classList.remove('text-primary');
-                el.classList.add('text-slate-400');
+                el.classList.remove('text-primary'); el.classList.add('text-slate-400');
             });
             const activeNavMobile = document.getElementById(`nav-mobile-${tabId}`);
             if(activeNavMobile) {
-                activeNavMobile.classList.remove('text-slate-400');
-                activeNavMobile.classList.add('text-primary');
+                activeNavMobile.classList.remove('text-slate-400'); activeNavMobile.classList.add('text-primary');
             }
 
             if (tabId === 'code') {
-                updateFileList();
-                setTimeout(() => editor.resize(), 50);
+                updateFileList(); setTimeout(() => editor.resize(), 50);
             } else if (tabId === 'settings') {
                 updateBackupList();
             }
@@ -465,8 +470,7 @@
 
         function toggleMobileFileList() {
             const container = document.getElementById('file-list-container');
-            container.classList.toggle('hidden');
-            container.classList.toggle('flex');
+            container.classList.toggle('hidden'); container.classList.toggle('flex');
         }
 
         // === 設定管理 (IndexedDB) ===
@@ -474,54 +478,56 @@
             await localforage.setItem('geminiKey', document.getElementById('gemini-key').value);
             await localforage.setItem('claudeKey', document.getElementById('claude-key').value);
             await localforage.setItem('openaiKey', document.getElementById('openai-key').value);
-            
             await localforage.setItem('cfAccountId', document.getElementById('cf-account-id').value);
             await localforage.setItem('cfToken', document.getElementById('cf-token').value);
             await localforage.setItem('workerName', document.getElementById('worker-name').value);
             
+            await localforage.setItem('systemPrompt', document.getElementById('system-prompt').value);
+            await localforage.setItem('cfWorkerPrompt', document.getElementById('cf-worker-prompt').value);
+
             const msg = document.getElementById('settings-msg');
-            msg.classList.remove('hidden');
-            setTimeout(() => msg.classList.add('hidden'), 2000);
+            msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
         }
 
         async function loadSettings() {
             document.getElementById('gemini-key').value = await localforage.getItem('geminiKey') || '';
             document.getElementById('claude-key').value = await localforage.getItem('claudeKey') || '';
             document.getElementById('openai-key').value = await localforage.getItem('openaiKey') || '';
-            
             document.getElementById('cf-account-id').value = await localforage.getItem('cfAccountId') || '';
             document.getElementById('cf-token').value = await localforage.getItem('cfToken') || '';
             document.getElementById('worker-name').value = await localforage.getItem('workerName') || 'my-awesome-worker';
+            
+            document.getElementById('system-prompt').value = await localforage.getItem('systemPrompt') || '';
+            document.getElementById('cf-worker-prompt').value = await localforage.getItem('cfWorkerPrompt') || '';
+
+            // テスト設定の復元
+            const testConfig = await localforage.getItem('testRequestConfig');
+            if(testConfig) {
+                document.getElementById('test-method').value = testConfig.method || 'GET';
+                const path = testConfig.url ? new URL(testConfig.url).pathname + new URL(testConfig.url).search : '/';
+                document.getElementById('test-url').value = path;
+                document.getElementById('test-headers').value = testConfig.headers && Object.keys(testConfig.headers).length > 0 ? JSON.stringify(testConfig.headers, null, 2) : '';
+                document.getElementById('test-body').value = testConfig.body || '';
+            }
         }
 
-        // === プロジェクト保存・バックアップ ===
         async function saveProject() {
             appState.timestamp = Date.now();
-            
             let history = await localforage.getItem('appState_history') || [];
             if(history.length === 0 || JSON.stringify(history[0].files) !== JSON.stringify(appState.files) || JSON.stringify(history[0].chatMessages) !== JSON.stringify(appState.chatMessages)) {
                 history.unshift(JSON.parse(JSON.stringify(appState)));
                 if(history.length > 5) history.pop();
                 await localforage.setItem('appState_history', history);
             }
-
             await localforage.setItem('appState', appState);
             const now = new Date();
-            document.querySelectorAll('.save-status-text').forEach(el => {
-                el.innerText = `保存済 (${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')})`;
-            });
-            if(document.getElementById('tab-settings').classList.contains('active')) updateBackupList();
+            document.querySelectorAll('.save-status-text').forEach(el => el.innerText = `保存済 (${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')})`);
         }
 
         async function loadProject() {
             const saved = await localforage.getItem('appState');
             if(saved) {
-                appState = {
-                    files: saved.files || [],
-                    currentFileIndex: saved.currentFileIndex || 0,
-                    timestamp: saved.timestamp || null,
-                    chatMessages: saved.chatMessages || []
-                };
+                appState = { files: saved.files || [], currentFileIndex: saved.currentFileIndex || 0, timestamp: saved.timestamp || null, chatMessages: saved.chatMessages || [] };
                 if(appState.files.length > 0) loadFileIntoEditor(appState.currentFileIndex);
             }
             renderChatHistory();
@@ -529,72 +535,79 @@
 
         async function updateBackupList() {
             const history = await localforage.getItem('appState_history') || [];
-            const list = document.getElementById('backup-list');
-            list.innerHTML = '';
-            if(history.length === 0) {
-                list.innerHTML = '<li class="text-sm text-slate-400 p-2">バックアップはありません</li>';
-                return;
-            }
+            const list = document.getElementById('backup-list'); list.innerHTML = '';
+            if(history.length === 0) return list.innerHTML = '<li class="text-sm text-slate-400 p-2">バックアップはありません</li>';
             history.forEach((state, idx) => {
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center bg-slate-50 p-3.5 border border-slate-100 rounded-xl text-sm shadow-sm transition-all hover:shadow";
-                const timeStr = new Date(state.timestamp).toLocaleString();
-                li.innerHTML = `<span class="font-medium text-slate-600">${timeStr} <span class="text-slate-400 font-normal ml-1">(${state.files.length}ファイル)</span></span> 
+                li.innerHTML = `<span class="font-medium text-slate-600">${new Date(state.timestamp).toLocaleString()} <span class="text-slate-400 font-normal ml-1">(${state.files.length}ファイル)</span></span> 
                                 <button onclick="restoreBackup(${idx})" class="bg-white border border-slate-200 text-blue-600 px-4 py-1.5 rounded-lg hover:bg-blue-50 font-bold shadow-sm transition-all active:scale-95 text-xs">復元</button>`;
                 list.appendChild(li);
             });
         }
-
         async function restoreBackup(index) {
             if(!confirm("現在の状態は上書きされます。復元しますか？")) return;
             const history = await localforage.getItem('appState_history') || [];
             if(history[index]) {
-                appState = history[index];
-                await saveProject(); 
+                appState = history[index]; await saveProject(); 
                 if(appState.files.length > 0) loadFileIntoEditor(appState.currentFileIndex);
-                renderChatHistory();
-                updateFileList();
-                alert("復元しました。");
+                renderChatHistory(); updateFileList(); alert("復元しました。");
             }
         }
 
-        // === APIキー 検証 ===
-        async function getApiKeys() {
-            return {
-                geminiKey: await localforage.getItem('geminiKey'),
-                claudeKey: await localforage.getItem('claudeKey'),
-                openaiKey: await localforage.getItem('openaiKey')
-            };
-        }
+        async function getApiKeys() { return { geminiKey: await localforage.getItem('geminiKey'), claudeKey: await localforage.getItem('claudeKey'), openaiKey: await localforage.getItem('openaiKey') }; }
         
         async function checkApiKeys() {
-            const model = document.getElementById('ai-model').value;
-            const keys = await getApiKeys();
-            if(model === 'gemini' && !keys.geminiKey) { alert("Gemini API Keyを設定してください。"); switchTab('settings'); return false; }
-            if(model === 'claude' && !keys.claudeKey) { alert("Claude API Keyを設定してください。"); switchTab('settings'); return false; }
-            if(model === 'gpt' && !keys.openaiKey) { alert("OpenAI API Keyを設定してください。"); switchTab('settings'); return false; }
+            const model = document.getElementById('ai-model').value; const keys = await getApiKeys();
+            const msg = "設定タブから該当するAPI Keyを登録してください。";
+            if(model === 'gemini' && !keys.geminiKey) { alert(`Gemini API Keyが未設定です。\n${msg}`); switchTab('settings'); return false; }
+            if(model === 'claude' && !keys.claudeKey) { alert(`Claude API Keyが未設定です。\n${msg}`); switchTab('settings'); return false; }
+            if(model === 'gpt' && !keys.openaiKey) { alert(`OpenAI API Keyが未設定です。\n${msg}`); switchTab('settings'); return false; }
             return true;
         }
 
-        // === チャット (要件定義フェーズ) ===
+        // === チャット制御 ===
+        function addCodeGenerateButtonIfNeeded() {
+            const existingBtn = document.getElementById('dynamic-code-gen-btn');
+            if (existingBtn) existingBtn.remove();
+
+            if (appState.chatMessages.length > 0 && appState.chatMessages[appState.chatMessages.length - 1].role === 'assistant') {
+                const history = document.getElementById('chat-history');
+                const btnContainer = document.createElement('div');
+                btnContainer.id = 'dynamic-code-gen-btn';
+                btnContainer.className = "w-full flex justify-center mt-4 mb-2 animate-fade-in-up";
+                btnContainer.innerHTML = `
+                    <button onclick="generateCodeFromChat()" class="w-[90%] md:w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-3.5 rounded-2xl hover:from-teal-500 hover:to-teal-600 font-extrabold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-base md:text-lg">
+                        <span class="text-2xl drop-shadow-md">⚡️</span> 確定した要件からコードを生成する
+                    </button>
+                `;
+                history.appendChild(btnContainer);
+                history.scrollTop = history.scrollHeight;
+            }
+        }
+
         async function sendChatMessage() {
             const inputEl = document.getElementById('chat-input');
             const input = inputEl.value.trim();
             if(!input) return;
-
             if(!(await checkApiKeys())) return;
 
             appState.chatMessages.push({ role: 'user', content: input });
             appendChatUI("あなた", input);
             inputEl.value = "";
+            addCodeGenerateButtonIfNeeded();
+
+            const systemPrompt = await localforage.getItem('systemPrompt') || '';
+            let apiMessages = [];
+            if (systemPrompt) {
+                apiMessages.push({ role: 'user', content: `[システム設定・役割]\n${systemPrompt}\n\n上記の設定に従って、以下の会話に対応してください。` });
+                apiMessages.push({ role: 'assistant', content: '承知いたしました。設定された役割に従って対応します。' });
+            }
+            apiMessages = apiMessages.concat(appState.chatMessages);
             
-            // API送信用配列（要件定義を深める指示を付与）
-            const messagesForAPI = [...appState.chatMessages];
-            const chatPrompt = `\n\n(指示: コードを生成するのではなく、これまでの会話内容を理解し、要件定義を深めるための次の発言・質問をしてください。回答は簡潔にお願いします。)`;
-            messagesForAPI[messagesForAPI.length - 1] = { 
-                role: 'user', 
-                content: messagesForAPI[messagesForAPI.length - 1].content + chatPrompt 
-            };
+            // 要件定義を促す指示
+            const lastIdx = apiMessages.length - 1;
+            apiMessages[lastIdx].content += `\n\n(指示: コードを生成するのではなく、これまでの会話内容を理解し、要件定義を深めるための次の発言・質問をしてください。回答は簡潔にお願いします。)`;
 
             showLoading("AIが思考中...");
             await requestWakeLock();
@@ -603,54 +616,39 @@
             const keys = await getApiKeys();
 
             aiWorker.onmessage = async function(e) {
-                hideLoading();
-                releaseWakeLock();
+                hideLoading(); releaseWakeLock();
                 if(e.data.success && !e.data.isCodeGeneration) {
-                    const reply = e.data.data;
-                    appState.chatMessages.push({ role: 'assistant', content: reply });
-                    appendChatUI("AI", reply);
+                    appState.chatMessages.push({ role: 'assistant', content: e.data.data });
+                    appendChatUI("AI", e.data.data);
+                    addCodeGenerateButtonIfNeeded();
                     await saveProject();
                 } else if(!e.data.success) {
-                    appendChatUI("エラー", "通信エラー: " + e.data.error);
+                    appendChatUI("エラー", "エラー: " + (e.data.error || "通信失敗"));
                 }
             };
-
-            aiWorker.postMessage({ messages: messagesForAPI, model, ...keys, isCodeGeneration: false });
+            aiWorker.postMessage({ messages: apiMessages, model, ...keys, isCodeGeneration: false });
         }
 
-        // === コード生成フェーズ ===
         async function generateCodeFromChat() {
-            if(appState.chatMessages.length === 0) {
-                alert("先にアイデアを入力し、送信ボタンでAIと対話を開始してください。");
-                return;
-            }
             if(!(await checkApiKeys())) return;
 
-            const messagesForAPI = [...appState.chatMessages];
-            const codeGenPrompt = `\n\nこれまでの会話内容の要件をすべて満たす、Cloudflare Workerのプログラムを作成してください。
-必ず以下のJSON形式のみを出力してください。マークダウン（\`\`\`json など）や説明文は一切不要です。
-{
-  "files": [
-    {"name": "index.js", "content": "ここにコード（Worker形式）"}
-  ]
-}`;
+            const cfWorkerPrompt = await localforage.getItem('cfWorkerPrompt') || '';
+            let codeGenPrompt = `\n\nこれまでの会話内容の要件をすべて満たす、Cloudflare Workerのプログラムを作成してください。\n必ず ES Modules 形式 (export default { async fetch(request, env, ctx) { ... } }) で出力してください。`;
+            if (cfWorkerPrompt) { codeGenPrompt += `\n\n【Cloudflare Worker 特別要件】\n${cfWorkerPrompt}`; }
+            codeGenPrompt += `\n\n必ず以下のJSON形式のみを出力してください。マークダウンや説明文は一切不要です。\n{\n  "files": [\n    {"name": "index.js", "content": "ここにコード"}\n  ]\n}`;
 
-            const lastMsg = messagesForAPI[messagesForAPI.length - 1];
-            if (lastMsg && lastMsg.role === 'user') {
-                messagesForAPI[messagesForAPI.length - 1] = { role: 'user', content: lastMsg.content + codeGenPrompt };
-            } else {
-                messagesForAPI.push({ role: 'user', content: codeGenPrompt });
-            }
+            let apiMessages = [...appState.chatMessages];
+            const lastMsg = apiMessages[apiMessages.length - 1];
+            if (lastMsg && lastMsg.role === 'user') apiMessages[apiMessages.length - 1].content += codeGenPrompt;
+            else apiMessages.push({ role: 'user', content: codeGenPrompt });
 
             showLoading("コードを生成中...");
             await requestWakeLock();
-
             const model = document.getElementById('ai-model').value;
             const keys = await getApiKeys();
 
             aiWorker.onmessage = async function(e) {
-                hideLoading();
-                releaseWakeLock();
+                hideLoading(); releaseWakeLock();
                 if(e.data.success && e.data.isCodeGeneration) {
                     try {
                         let cleanJson = e.data.data.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
@@ -660,75 +658,55 @@
                         appState.files = parsed.files;
                         appState.currentFileIndex = 0;
                         
-                        const successMsg = "コードの生成が完了しました！「コード編集」タブを開いて確認してください。";
+                        const successMsg = "コードの生成が完了しました！「コード編集」や「テスト」タブを開いて確認してください。";
                         appendChatUI("AI", successMsg);
                         appState.chatMessages.push({ role: 'assistant', content: successMsg });
+                        addCodeGenerateButtonIfNeeded();
                         
-                        await saveProject(); 
-                        switchTab('code');
+                        await saveProject(); switchTab('code');
                     } catch(err) {
-                        console.error(err, e.data.data);
-                        appendChatUI("エラー", "生成データの解析に失敗しました。もう一度生成ボタンを押してください。");
+                        appendChatUI("エラー", "生成データの解析に失敗しました。もう一度実行してください。");
                     }
                 } else if(!e.data.success) {
                     appendChatUI("エラー", "生成に失敗しました: " + e.data.error);
                 }
             };
-
-            aiWorker.postMessage({ messages: messagesForAPI, model, ...keys, isCodeGeneration: true });
+            aiWorker.postMessage({ messages: apiMessages, model, ...keys, isCodeGeneration: true });
         }
 
-        // === チャットUI ===
         function renderChatHistory() {
             const historyEl = document.getElementById('chat-history');
             historyEl.innerHTML = `
                 <div class="bg-white border border-slate-200 p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md text-sm text-slate-700 leading-relaxed font-medium">
-                    <span class="text-xl mb-1 block">👋</span> Cloudflare Workerで作りたいAPIやアプリのアイデアを教えてください。<br><br>
-                    対話して要件を整理した後、下の<b class="text-emerald-600">「⚡️ 要件からコードを生成する」</b>ボタンを押すと、自動でプログラムが組まれます。
+                    <span class="text-xl mb-1 block">👋</span> 作り度いアプリのアイデアを教えてください。<br>
+                    対話して要件が固まると、リプライの後に<b class="text-emerald-600">「⚡️ 確定した要件からコードを生成する」</b>ボタンが表示されます。
                 </div>`;
-            appState.chatMessages.forEach(msg => {
-                appendChatUI(msg.role === 'user' ? 'あなた' : 'AI', msg.content);
-            });
+            appState.chatMessages.forEach(msg => appendChatUI(msg.role === 'user' ? 'あなた' : 'AI', msg.content));
             historyEl.scrollTop = historyEl.scrollHeight;
+            addCodeGenerateButtonIfNeeded();
         }
 
         function appendChatUI(sender, message) {
             const history = document.getElementById('chat-history');
             const div = document.createElement('div');
-            
-            // リッチ化されたチャットバブル
-            if (sender === "あなた") {
-                div.className = "bg-gradient-to-br from-primary to-blue-600 text-white p-4 md:p-5 rounded-2xl rounded-tr-sm max-w-[90%] md:max-w-2xl self-end shadow-md shadow-blue-500/20 whitespace-pre-wrap text-sm leading-relaxed font-medium";
-            } else if (sender === "エラー") {
-                div.className = "bg-red-50 text-red-700 border border-red-200 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
-            } else {
-                div.className = "bg-white border border-slate-200 text-slate-700 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
-            }
-            
-            div.innerText = message;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
+            if (sender === "あなた") div.className = "bg-gradient-to-br from-primary to-blue-600 text-white p-4 md:p-5 rounded-2xl rounded-tr-sm max-w-[90%] md:max-w-2xl self-end shadow-md shadow-blue-500/20 whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            else if (sender === "エラー") div.className = "bg-red-50 text-red-700 border border-red-200 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            else div.className = "bg-white border border-slate-200 text-slate-700 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            div.innerText = message; history.appendChild(div); history.scrollTop = history.scrollHeight;
         }
 
         async function clearChat() {
-            if(confirm("会話履歴をクリアしますか？")) {
-                appState.chatMessages = [];
-                renderChatHistory();
-                await saveProject();
-            }
+            if(confirm("会話履歴をクリアしますか？")) { appState.chatMessages = []; renderChatHistory(); await saveProject(); }
         }
 
-        // === ファイル・エディタ管理 ===
+        // === エディタ制御 ===
         function updateFileList() {
-            const list = document.getElementById('file-list');
-            list.innerHTML = '';
+            const list = document.getElementById('file-list'); list.innerHTML = '';
             appState.files.forEach((file, index) => {
-                const li = document.createElement('li');
-                const isActive = index === appState.currentFileIndex;
+                const li = document.createElement('li'); const isActive = index === appState.currentFileIndex;
                 li.className = `p-3.5 rounded-xl cursor-pointer text-sm truncate transition-all duration-200 border-l-4 ${isActive ? 'bg-blue-50/80 font-bold border-primary text-primary shadow-sm' : 'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`;
                 li.innerHTML = `<span class="mr-2 opacity-70">📄</span>${file.name}`;
-                li.onclick = () => loadFileIntoEditor(index);
-                list.appendChild(li);
+                li.onclick = () => loadFileIntoEditor(index); list.appendChild(li);
             });
         }
 
@@ -736,125 +714,155 @@
             if(!appState.files[index]) return;
             appState.currentFileIndex = index;
             editor.setValue(appState.files[index].content, -1);
-            
             document.getElementById('mobile-current-file').innerText = appState.files[index].name;
-
             const ext = appState.files[index].name.split('.').pop();
-            if(ext === 'json') editor.session.setMode("ace/mode/json");
-            else if(ext === 'html') editor.session.setMode("ace/mode/html");
-            else editor.session.setMode("ace/mode/javascript");
-            
+            editor.session.setMode(ext === 'json' ? "ace/mode/json" : ext === 'html' ? "ace/mode/html" : "ace/mode/javascript");
             updateFileList();
-
-            if(window.innerWidth < 768) {
-                const container = document.getElementById('file-list-container');
-                if(!container.classList.contains('hidden')) toggleMobileFileList();
-            }
+            if(window.innerWidth < 768) { const c = document.getElementById('file-list-container'); if(!c.classList.contains('hidden')) toggleMobileFileList(); }
         }
 
-        // === デプロイ ===
+        // === テスト実行 (Web Worker Sandbox) ===
+        async function runWorkerTest() {
+            const code = editor.getValue();
+            if(!code) return alert("テストするコードがエディタに存在しません。");
+
+            const method = document.getElementById('test-method').value;
+            const path = document.getElementById('test-url').value;
+            const urlStr = "http://worker.test" + (path.startsWith('/') ? path : '/' + path);
+            const bodyStr = document.getElementById('test-body').value;
+            let headersObj = {};
+            try {
+                const h = document.getElementById('test-headers').value.trim();
+                if(h) headersObj = JSON.parse(h);
+            } catch(e) { return alert("Headersは正しいJSON形式で入力してください。"); }
+
+            const reqConfig = { method, url: urlStr, headers: headersObj, body: bodyStr };
+            await localforage.setItem('testRequestConfig', reqConfig);
+
+            document.getElementById('test-status-code').innerText = "実行中...";
+            document.getElementById('test-response-headers').innerText = "";
+            document.getElementById('test-response-body').innerText = "Running sandbox environment...";
+            showLoading("テスト実行中...");
+
+            if(testWorker) { testWorker.terminate(); }
+
+            // ESM形式でWorkerコードを動的インポートしてシミュレート
+            const workerSrc = `
+                self.onmessage = async (e) => {
+                    const { code, reqConfig } = e.data;
+                    try {
+                        const blob = new Blob([code], { type: 'application/javascript' });
+                        const url = URL.createObjectURL(blob);
+                        
+                        let mod;
+                        try {
+                            mod = await import(url);
+                        } catch(err) {
+                            throw new Error("モジュールの読み込みに失敗しました。ES Modules形式 (export default { fetch: ... }) で記述されているか確認してください。\\n詳細: " + err.message);
+                        }
+
+                        if(!mod.default || typeof mod.default.fetch !== 'function') {
+                            throw new Error("Workerコードにデフォルトエクスポート (export default) または fetch 関数が見つかりません。");
+                        }
+
+                        const options = { method: reqConfig.method, headers: new Headers(reqConfig.headers) };
+                        if(reqConfig.method !== 'GET' && reqConfig.method !== 'HEAD' && reqConfig.body) options.body = reqConfig.body;
+                        
+                        const req = new Request(reqConfig.url, options);
+                        const res = await mod.default.fetch(req, {}, { waitUntil: ()=>{} });
+                        
+                        if(!(res instanceof Response)) throw new Error("fetch関数がResponseオブジェクトを返しませんでした。");
+
+                        const resHeaders = {};
+                        res.headers.forEach((v, k) => resHeaders[k] = v);
+                        const resBody = await res.text();
+
+                        self.postMessage({ success: true, status: res.status, headers: resHeaders, body: resBody });
+                    } catch(err) {
+                        self.postMessage({ success: false, error: err.toString() });
+                    }
+                };
+            `;
+            const blob = new Blob([workerSrc], { type: 'application/javascript' });
+            testWorker = new Worker(URL.createObjectURL(blob));
+
+            testWorker.onmessage = (e) => {
+                hideLoading();
+                if(e.data.success) {
+                    document.getElementById('test-status-code').innerText = `${e.data.status}`;
+                    document.getElementById('test-status-code').className = `font-bold text-white px-2.5 py-1 rounded text-[11px] ${e.data.status >= 200 && e.data.status < 300 ? 'bg-green-600' : 'bg-red-600'}`;
+                    document.getElementById('test-response-headers').innerText = JSON.stringify(e.data.headers, null, 2);
+                    document.getElementById('test-response-body').innerText = e.data.body || "(Empty Body)";
+                } else {
+                    document.getElementById('test-status-code').innerText = "ERROR";
+                    document.getElementById('test-status-code').className = "font-bold text-white px-2.5 py-1 rounded text-[11px] bg-red-600";
+                    document.getElementById('test-response-body').innerText = e.data.error;
+                }
+            };
+            testWorker.postMessage({ code, reqConfig });
+        }
+
+        // === デプロイ制御 ===
         async function deployToCloudflare() {
             const accountId = document.getElementById('cf-account-id').value;
             const token = document.getElementById('cf-token').value;
             let workerName = document.getElementById('worker-name').value || 'my-awesome-worker';
             const logEl = document.getElementById('deploy-log');
 
-            if(!accountId || !token) {
-                alert("設定タブでCloudflareのAccount ID, API Tokenを設定してください。");
-                switchTab('settings');
-                return;
-            }
+            if(!accountId || !token) { alert("設定タブでCloudflare情報を設定してください。"); switchTab('settings'); return; }
 
             const mainFile = appState.files.find(f => f.name === 'index.js' || f.name === 'worker.js');
-            if(!mainFile) {
-                logEl.innerText = "> [エラー] デプロイには 'index.js' または 'worker.js' が必要です。";
-                return;
-            }
+            if(!mainFile) return logEl.innerText = "> [エラー] デプロイには 'index.js' が必要です。";
 
             logEl.innerText = `> [${new Date().toLocaleTimeString()}] デプロイ開始: ${workerName}...\n`;
-            showLoading("デプロイ中...");
-            await requestWakeLock();
+            showLoading("デプロイ中..."); await requestWakeLock();
 
             try {
-                const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`;
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/javascript'
-                    },
-                    body: mainFile.content
-                });
+                // ESMモジュールとしてデプロイするためにはmultipart/form-dataが必要
+                const formData = new FormData();
+                formData.append("index.js", new Blob([mainFile.content], { type: "application/javascript+module" }), "index.js");
+                formData.append("metadata", new Blob([JSON.stringify({ main_module: "index.js" })], { type: "application/json" }));
 
+                const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`;
+                const response = await fetch(url, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
                 const result = await response.json();
                 
-                if(result.success) {
-                    logEl.innerText += `> [成功] デプロイ完了！🚀\n`;
-                    logEl.innerText += `> 👉 https://${workerName}.<your-subdomain>.workers.dev\n`;
-                } else {
-                    logEl.innerText += `> [エラー] ${JSON.stringify(result.errors, null, 2)}\n`;
-                }
+                if(result.success) logEl.innerText += `> [成功] デプロイ完了！🚀\n> 👉 https://${workerName}.<your-subdomain>.workers.dev\n`;
+                else logEl.innerText += `> [エラー] ${JSON.stringify(result.errors, null, 2)}\n`;
             } catch (err) {
                 logEl.innerText += `> [ネットワークエラー] ${err.message}\n`;
             } finally {
-                hideLoading();
-                releaseWakeLock();
+                hideLoading(); releaseWakeLock();
             }
         }
 
-        // === ZIP エクスポート ===
+        // === ZIP Export / Import ===
         async function exportProject() {
             if(appState.files.length === 0) return alert("エクスポートするファイルがありません。");
-            
             const zip = new JSZip();
-            appState.files.forEach(file => {
-                zip.file(file.name, file.content);
-            });
-            
-            zip.file("project_meta.json", JSON.stringify({
-                workerName: document.getElementById('worker-name').value,
-                timestamp: Date.now(),
-                chatMessages: appState.chatMessages
-            }));
-
+            appState.files.forEach(file => zip.file(file.name, file.content));
+            zip.file("project_meta.json", JSON.stringify({ workerName: document.getElementById('worker-name').value, timestamp: Date.now(), chatMessages: appState.chatMessages }));
             const content = await zip.generateAsync({type:"blob"});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(content);
-            a.download = `${document.getElementById('worker-name').value || 'aws-project'}.zip`;
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(content);
+            a.download = `${document.getElementById('worker-name').value || 'abs-project'}.zip`; a.click();
         }
 
-        // === ZIP インポート ===
         async function importProject(event) {
-            const file = event.target.files[0];
-            if(!file) return;
-
+            const file = event.target.files[0]; if(!file) return;
             try {
-                const zip = await JSZip.loadAsync(file);
-                appState.files = [];
-                
+                const zip = await JSZip.loadAsync(file); appState.files = [];
                 for (let filename of Object.keys(zip.files)) {
-                    const fileData = zip.files[filename];
-                    if(!fileData.dir) {
-                        const content = await fileData.async("string");
+                    if(!zip.files[filename].dir) {
+                        const content = await zip.files[filename].async("string");
                         if(filename === "project_meta.json") {
                             const meta = JSON.parse(content);
                             if(meta.workerName) document.getElementById('worker-name').value = meta.workerName;
                             if(meta.chatMessages) appState.chatMessages = meta.chatMessages;
-                        } else {
-                            appState.files.push({ name: filename, content: content });
-                        }
+                        } else appState.files.push({ name: filename, content: content });
                     }
                 }
-                
-                appState.currentFileIndex = 0;
-                await saveProject();
-                renderChatHistory();
-                switchTab('code');
-                alert("インポートが完了しました。");
-            } catch(err) {
-                alert("ZIPの読み込みに失敗しました: " + err.message);
-            }
+                appState.currentFileIndex = 0; await saveProject(); renderChatHistory(); switchTab('code'); alert("読込完了");
+            } catch(err) { alert("読込失敗: " + err.message); }
             event.target.value = '';
         }
     </script>
