@@ -1,85 +1,60 @@
-# AI Backend Studio
+# AI Worker Studio
 
-AI Backend Studioは、ブラウザ上で完結する**AI駆動型のバックエンド開発・デプロイ環境**です。
-Google Gemini APIを活用して、自然言語のプロンプトからAPIコード（FastAPIやCloudflare Workersなど）を自動生成し、ブラウザ内蔵のエディタで編集、さらにはGCP Cloud RunやCloudflare Workersへのデプロイまでをシームレスに行うことができます。
+## 概要・説明
 
-## 🌟 概要・主な特徴
+AI Worker Studio (AWS) は、ブラウザ上でAIと対話しながら要件定義を行い、そのままCloudflare Workersのコードを自動生成・編集・デプロイできる次世代のWebベースIDE（統合開発環境）です。
 
-- **オールインワンのWeb IDE**: チャット、コードエディタ、ファイル管理、APIテスト、デプロイ、インフラ管理を一つの画面に統合。
-- **AIアシスタント内蔵**: 要件を伝えるだけで、AIがプロジェクトに必要な複数ファイル（Pythonスクリプト、JS/TS、Dockerfile、デプロイ設定ファイルなど）を一括生成します。
-- **ブラウザ完結のローカル保存**: Dexie.js（IndexedDB）を使用し、すべてのプロジェクトファイルや設定、チャット履歴はブラウザに安全に保存されます。
-- **ワンクリック・デプロイ**: 
-  - **GCP Cloud Run**: GitHub API経由でリポジトリを作成・プッシュし、GitHub Actions（CI/CD）を利用して自動デプロイを行います。
-  - **Cloudflare Workers**: Cloudflare APIを叩き、ブラウザから直接エッジ環境へWorkerスクリプトをデプロイします。
+PCとスマートフォンの両方に最適化されたレスポンシブデザインを採用しており、PWA（Progressive Web App）として端末にインストールすることも可能です。Gemini、Claude、OpenAIの3つの強力なAIモデルを切り替えて利用でき、アイデア出しからクラウドへの公開までをシームレスに完結させます。
 
-## 🚀 主な機能一覧
+## 主な機能一覧
 
-### 1. 💬 CHAT (AIチャットアシスタント)
-- Gemini API（Web Worker上で非同期動作）を利用した高速なコード生成。
-- ユーザーのプロンプトと既存のプロジェクトファイルをコンテキストとしてAIに渡し、精度の高いコード改修を実現。
+- **💬 対話型要件定義**: チャットUIでAIと壁打ちをしながら、作りたいアプリやAPIの仕様を固めることができます。
+- **⚡️ コード自動生成**: まとまった要件のコンテキストをもとに、Cloudflare Worker用のプログラム（JSON形式の複数ファイル）をワンクリックで自動生成します。
+- **💻 高機能コードエディタ**: シンタックスハイライトや複数ファイル管理機能（エクスプローラー）を備えた本格的なエディタを搭載。モバイル環境でも快適に編集可能です。
+- **🚀 Cloudflare 直接デプロイ**: ブラウザからCloudflare APIを直接呼び出し、ワンクリックでWorkers環境へデプロイします。ターミナル風のログ画面で進行状況をリアルタイムに確認できます。
+- **⚙️ ローカル完結のセキュアな設定**: APIキーやプロジェクトのデータは、IndexedDBを用いてブラウザ内に安全に自動保存されます。直近5件の自動バックアップおよび復元機能も備えています。
+- **📦 インポート / エクスポート**: プロジェクトのコードとチャットの会話履歴をZIP形式で簡単に出力・読み込みが可能です。
+- **📱 PWA & モバイル最適化**: スマホのノッチやセーフエリアに対応し、アプリライクなボトムナビゲーションを提供。Web Workerを活用することで、AI処理中もUIがフリーズしません。
 
-### 2. 📝 CODE & FILES (エディタとファイル管理)
-- **CodeMirror 5**によるシンタックスハイライト付きエディタ（Python, JS/TS, YAML, TOML, Dockerfile, Markdown対応）。
-- 仮想ファイルシステムでの新規作成、削除、ブラウザ内オートセーブ。
-- プロジェクト全体のJSONエクスポート/インポート機能。
-- GitHubリポジトリからのファイル直接インポート機能。
+## 使用技術・ライブラリ
 
-### 3. 🧪 TEST (APIテスター)
-- Postmanライクな組み込みHTTPクライアント。
-- メソッド（GET, POST, PUT, DELETE, PATCH）、URL、JSONヘッダー・ボディを指定してAPIの動作検証が可能。
+- **フロントエンド**: HTML5, CSS3, Vanilla JavaScript
+- **スタイリング**: Tailwind CSS (CDN経由)
+- **エディタ**: Ace Editor
+- **ストレージ・ファイル操作**: localForage (IndexedDB), JSZip (ZIP圧縮/展開)
+- **パフォーマンス・PWA**: Web Workers (AI通信の非同期処理), Service Workers
+- **連携API**: 
+  - Google Gemini API (Gemini 2.5 Flash)
+  - Anthropic Claude API (Claude 3.5 Sonnet)
+  - OpenAI API (GPT-3.5 Turbo)
+  - Cloudflare API (Workersスクリプト デプロイ用)
 
-### 4. ☁️ DEPLOY (デプロイ機能)
-- **GCPタブ**: GitHubリポジトリへのプッシュから、`deploy.yml` の自動生成を通じたCloud RunへのCI/CDパイプライン構築。
-- **WORKERタブ**: ローカルのJS/TSファイルをCloudflare Workersへ直接アップロード＆デプロイ。
+## セットアップ・使い方
 
-### 5. 🛠 INFRA (インフラ・環境変数管理)
-- **Firestore Explorer**: 仮想的なFirestoreのコレクション・ドキュメント（JSON）エディタ。
-- **Security Rules**: Firestoreのセキュリティルールを管理。AIによるルール自動生成機能付き。
-- GCPおよびCloudflare向けの環境変数（Environment Variables）の追加・管理機能。
+### 1. 準備（初期設定）
+1. 本プロジェクトのHTMLファイルをブラウザで開きます。（ローカル環境、またはVercelやGitHub Pages等の静的ホスティングサービスでの利用を推奨します）
+2. 画面下部のナビゲーション（PCは左サイドバー）から **「⚙️ 設定」** タブを開きます。
+3. 以下の情報を入力し、「設定を端末に保存」をクリックします：
+   - **AI エンジン API Keys**: 使用したいAIモデルのAPIキー（Gemini, Claude, または OpenAI）
+   - **Cloudflare 認証情報**: Cloudflareの「Account ID」と「API Token」（※トークンは Edit Workers 権限を持つものを作成してください）
 
-### 6. ⚙️ CFG (設定)
-- Gemini APIキー、AIモデルの選択（Flash/Pro等）。
-- GitHub PAT（Personal Access Token）設定。
-- GCP Project ID、Cloud Runサービス名の設定。
-- Cloudflare Account ID、API Token、Worker名の設定。
+### 2. 要件定義とコード生成
+1. **「💬 要件」** タブを開き、上部のドロップダウンから使用するAIモデルを選択します。
+2. チャット入力欄に作りたいCloudflare Workerのアイデア（例：「アクセスしたIPアドレスと国コードをJSONで返すAPIを作って」）を入力し、送信します。
+3. AIからの質問に答えながら要件を詳細化します。
+4. 要件が固まったら、画面下部の **「⚡️ 要件からコードを生成する」** ボタンを押します。
 
-## 🛠 使用技術・ライブラリ
+### 3. コードの確認・編集
+1. コードの生成が完了すると、ファイルを自動展開します。
+2. **「💻 コード」** タブを開き、エクスプローラーからファイル（`index.js` 等）を選択して中身を確認します。
+3. エディタ上で直接コードを修正することも可能です。編集内容は自動的に一時保存されます。
 
-- **フロントエンド**: HTML5, CSS3, JavaScript (Vanilla)
-- **スタイリング**: Tailwind CSS (CDN)
-- **アイコン**: FontAwesome 6
-- **エディタ**: CodeMirror 5
-- **データベース**: Dexie.js (IndexedDB)
-- **Markdown処理**: marked.js, DOMPurify
-- **AI連携**: Google Gemini API (v1beta)
-- **その他API**: GitHub REST API, Cloudflare API
+### 4. Cloudflareへのデプロイ
+1. **「🚀 デプロイ」** タブを開きます。
+2. 「Worker名」の欄に、デプロイ先のURLプレフィックスとなる任意の名前（例: `my-awesome-api`）を入力します。
+3. **「Cloudflareへデプロイ」** ボタンをクリックします。ターミナル画面にログが表示され、成功すると実際にアクセス可能なURLが発行されます。
 
-## 📦 セットアップ・使い方
-
-このアプリケーションはバックエンドサーバーを必要としません。単一のHTMLファイルとして動作します。
-
-### ステップ 1: アプリの起動
-1. 本リポジトリの `index.html` をダウンロードします。
-2. ブラウザ（Chrome, Edge, Firefox, Safari等）で直接ファイルを開きます。
-   *※ クリップボードAPIや一部の機能を利用するため、ローカルサーバー（VS CodeのLive Serverなど）経由での起動を推奨します。*
-
-### ステップ 2: 初期設定
-1. アプリ画面下部のナビゲーションから **CFG (⚙️)** タブを開きます。
-2. [Google AI Studio](https://aistudio.google.com/) で取得した **Gemini API Key** を入力します。
-3. （オプション）デプロイ機能を利用する場合は、以下の情報を入力して `Save` ボタンを押します。
-   - **GCP用**: GitHub PAT、GCP Project ID
-   - **Cloudflare用**: CF Account ID、CF API Token、Worker Name
-
-### ステップ 3: 開発フロー
-1. **コード生成**: **CHAT** タブで「Cloudflare WorkerでJSONを返すAPIを作って」と入力し、送信ボタンを押します。
-2. **コード確認**: **FILES** タブに生成されたファイル（`index.js` 等）が表示されます。タップして **CODE** タブで内容を確認・編集します。
-3. **デプロイ**: 
-   - Cloudflareの場合は **WORKER** タブから `Deploy to CF Worker` をクリックします。
-   - GCPの場合は **GCP** タブからリポジトリ名を入力し `Push & Deploy` をクリックします。
-4. **テスト検証**: 発行されたエンドポイントURLを **TEST** タブに入力し、リクエストを送信して動作を確認します。
-
----
-
-**⚠️ 注意事項**
-- 本ツールで扱うAPIキーやトークンは、すべてブラウザ内のIndexedDBにのみ保存され、外部サーバーには送信されません（各公式APIの直接呼び出しを除く）。
-- セキュリティ保護のため、他人がアクセスできる共有PCでの利用後は、CFGタブ最下部の「全データ削除」を実行してください。
+### 5. プロジェクトの保存・管理
+- **保存とバックアップ**: コードを編集するたびに自動保存されます。「⚙️ 設定」タブの下部から過去5回分の状態にロールバックすることが可能です。
+- **エクスポート**: 画面右上（PCはサイドバー）の「📦」ボタンを押すと、現在のコードとチャット履歴をZIPファイルとしてダウンロードできます。
+- **インポート**: 「📂」ボタンからエクスポートしたZIPファイルを読み込むことで、別の端末やセッションで作業を再開できます。
