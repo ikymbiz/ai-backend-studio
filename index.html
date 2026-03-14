@@ -3,1361 +3,860 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Backend Studio</title>
+    <title>AI Worker Studio</title>
+    <!-- PWA用 マニフェストとテーマカラー -->
+    <meta name="theme-color" content="#f1f5f9">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22AI%20Worker%20Studio%22%2C%22short_name%22%3A%22AWS%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f1f5f9%22%2C%22theme_color%22%3A%22%23f1f5f9%22%7D">
     
+    <!-- 外部ライブラリ (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
-    
-    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/yaml/yaml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/dockerfile/dockerfile.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/toml/toml.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        dark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root { --nav-height: 56px; --safe-bottom: env(safe-area-inset-bottom, 0px); }
-        body { background-color: #0f172a; color: #f8fafc; overflow: hidden; overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        /* エディタをコンテナサイズに追従させる */
+        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; }
+        /* モバイル用のタップハイライト抑止 */
+        * { -webkit-tap-highlight-color: transparent; }
+        /* 安全領域(ノッチ等)対応 */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
         
-        .tab-content { display: none; height: calc(100vh - 48px - var(--nav-height) - var(--safe-bottom)); overflow-y: auto; overflow-x: hidden; }
-        .tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.2s ease; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        .CodeMirror { height: 100%; font-size: 13px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; border-radius: 0.5rem; }
-        .CodeMirror-vscrollbar, .CodeMirror-hscrollbar { outline: none; }
-        
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
-        
-        .markdown-body p { margin-bottom: 0.5rem; }
-        .markdown-body pre { background: #1e293b; padding: 0.5rem; border-radius: 0.25rem; overflow-x: auto; margin-bottom: 0.5rem; font-size: 12px; }
-        .markdown-body code { background: #334155; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 12px; }
-        .markdown-body ul, .markdown-body ol { padding-left: 1.2rem; margin-bottom: 0.5rem; }
-        .markdown-body li { margin-bottom: 0.2rem; }
-        
-        .nav-active { color: #3b82f6 !important; }
-        .typing-indicator span { display: inline-block; width: 4px; height: 4px; background-color: #94a3b8; border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; margin: 0 2px; }
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
-        /* Toggle Switch */
-        .toggle-track { position: relative; width: 44px; height: 24px; background: #475569; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
-        .toggle-track.on { background: #3b82f6; }
-        .toggle-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-        .toggle-track.on .toggle-knob { transform: translateX(20px); }
-
-        /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
-        .modal-overlay.show { display: flex; }
-        .modal-box { background: #1e293b; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #334155; }
-        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-
-        /* Deploy progress */
-        .deploy-step { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 12px; }
-        .deploy-step .step-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; flex-shrink: 0; }
-        .step-pending .step-icon { background: #334155; color: #94a3b8; }
-        .step-running .step-icon { background: #1d4ed8; color: white; animation: pulse 1s infinite; }
-        .step-done .step-icon { background: #16a34a; color: white; }
-        .step-error .step-icon { background: #dc2626; color: white; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="flex flex-col h-screen text-sm w-full">
+<body class="bg-slate-100 h-screen flex flex-col md:flex-row overflow-hidden font-sans text-sm md:text-base text-gray-800">
 
-    <!-- Header -->
-    <header class="bg-slate-900 h-12 px-4 border-b border-slate-800 flex justify-between items-center shadow-md shrink-0">
-        <div class="font-bold text-sm text-blue-400 flex items-center gap-2">
-            <i class="fa-solid fa-layer-group"></i> AI Backend Studio
+    <!-- 【モバイル専用】トップヘッダー (スマート化) -->
+    <header class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md text-gray-800 p-3 pt-safe border-b border-slate-200 shadow-sm z-20 shrink-0">
+        <div class="font-extrabold text-lg truncate flex items-center gap-1.5">
+            <span class="text-xl">⚡️</span> 
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">AWS</span>
         </div>
-        <div class="flex items-center gap-3 text-xs">
-            <span id="status-indicator" class="text-slate-400 flex items-center gap-1">
-                <i class="fa-solid fa-circle text-[6px] status-dot text-green-500"></i> <span class="status-text">Ready</span>
-            </span>
-            <button onclick="exportProject()" class="bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-700 active:scale-95" title="Export">
-                <i class="fa-solid fa-file-export text-xs"></i>
-            </button>
+        <div class="flex gap-2 shrink-0">
+            <button onclick="saveProject()" class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-base transition-all active:scale-95 shadow-sm text-blue-600" title="保存">💾</button>
+            <button onclick="exportProject()" class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-base transition-all active:scale-95 shadow-sm text-green-600" title="エクスポート">📦</button>
+            <label class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full cursor-pointer text-base transition-all active:scale-95 shadow-sm text-yellow-600 flex items-center" title="インポート">
+                📂<input type="file" class="hidden" accept=".zip" onchange="importProject(event)">
+            </label>
         </div>
     </header>
 
-    <!-- Main Workspace -->
-    <main class="flex-1 relative bg-slate-900 w-full overflow-hidden">
+    <!-- 【PC専用】サイドバー (ダークトーンで洗練) -->
+    <aside class="hidden md:flex w-64 bg-dark text-slate-300 flex-col z-20 shadow-2xl shrink-0">
+        <div class="p-6 text-xl font-extrabold border-b border-slate-800/80 flex items-center gap-2">
+            <span class="text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">⚡️</span> 
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">AI Worker Studio</span>
+        </div>
+        <nav class="flex-1 p-3 space-y-1.5 mt-2">
+            <button onclick="switchTab('chat')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-chat"><span>💬</span> 要件定義</button>
+            <button onclick="switchTab('code')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-code"><span>💻</span> コード編集</button>
+            <button onclick="switchTab('deploy')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-deploy"><span>🚀</span> デプロイ</button>
+            <button onclick="switchTab('settings')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/80 hover:text-white font-medium nav-btn-pc transition-all duration-300 flex items-center gap-3 border-l-4 border-transparent" id="nav-settings"><span>⚙️</span> 設定</button>
+        </nav>
+        <div class="p-5 border-t border-slate-800/80 space-y-3 text-sm bg-slate-900/40 relative overflow-hidden">
+            <button onclick="saveProject()" class="w-full bg-slate-800 hover:bg-blue-600 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white p-3 rounded-xl text-center transition-all duration-300 shadow-md flex items-center justify-center gap-2 font-medium active:scale-95">💾 一時保存</button>
+            <div class="flex gap-2">
+                <button onclick="exportProject()" class="flex-1 bg-slate-800 hover:bg-green-600 border border-slate-700 hover:border-green-500 text-slate-300 hover:text-white p-3 rounded-xl text-center transition-all duration-300 shadow-md font-medium active:scale-95">📦 出力</button>
+                <label class="flex-1 bg-slate-800 hover:bg-yellow-600 border border-slate-700 hover:border-yellow-500 text-slate-300 hover:text-white p-3 rounded-xl text-center cursor-pointer transition-all duration-300 shadow-md font-medium active:scale-95">
+                    📂 読込
+                    <input type="file" class="hidden" accept=".zip" onchange="importProject(event)">
+                </label>
+            </div>
+            <div class="save-status-text text-xs text-slate-500 text-center mt-2 font-mono">未保存</div>
+        </div>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col relative overflow-hidden mb-[64px] md:mb-0 pb-safe md:pb-0">
         
-        <!-- 1. CHAT TAB -->
-        <div id="tab-chat" class="tab-content active w-full h-full">
-            <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                <div class="flex flex-col items-start max-w-[90%]">
-                    <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-700 text-sm markdown-body">
-                        <p><b>AI Backend Studio</b> 🚀</p>
-                        <p>どんなバックエンドAPIを作りますか？</p>
-                        <p style="font-size:11px;color:#94a3b8;">例: 「FastAPIでAPIを作って」「Cloudflare WorkerのJSを生成して」</p>
-                    </div>
-                </div>
-            </div>
-            <div class="sticky bottom-0 left-0 right-0 p-3 bg-slate-900 border-t border-slate-800 shrink-0">
-                <div class="flex gap-2 relative items-end">
-                    <textarea id="chat-input" rows="1" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-blue-500 resize-none max-h-32 overflow-y-auto leading-relaxed text-sm" placeholder="AIにコード生成を依頼..."></textarea>
-                    <button id="send-btn" class="absolute right-1.5 bottom-1.5 bg-blue-600 hover:bg-blue-500 text-white w-9 h-9 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 disabled:bg-slate-600">
-                        <i class="fa-solid fa-arrow-up"></i>
-                    </button>
-                </div>
+        <!-- ローディングオーバーレイ -->
+        <div id="loading-overlay" class="hidden absolute inset-0 bg-slate-900/30 z-50 flex-col items-center justify-center text-white backdrop-blur-md transition-all duration-300">
+            <div class="bg-white/95 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-white/20">
+                <div class="animate-spin rounded-full h-14 w-14 border-4 border-slate-100 border-t-primary mb-5 shadow-sm"></div>
+                <div id="loading-text" class="text-lg font-extrabold text-slate-700 tracking-wide">処理中...</div>
             </div>
         </div>
 
-        <!-- 2. CODE TAB -->
-        <div id="tab-code" class="tab-content w-full h-full p-2 bg-[#272822]">
-            <div class="flex justify-between items-center mb-2 px-2 shrink-0 bg-[#272822]">
-                <div class="flex items-center gap-2">
-                    <i class="fa-brands fa-python text-yellow-400" id="code-file-icon"></i>
-                    <span class="font-mono text-xs text-slate-300 font-bold" id="current-file-name">main.py</span>
-                </div>
-                <span class="text-[10px] text-slate-500" id="save-status">Saved</span>
-            </div>
-            <div class="flex-1 w-full rounded overflow-hidden relative border border-slate-700/50">
-                <textarea id="code-editor"></textarea>
-            </div>
-        </div>
-
-        <!-- 3. STRUCTURE TAB -->
-        <div id="tab-structure" class="tab-content p-4 w-full h-full">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-base font-bold text-slate-200">Project Files</h2>
-                <div class="flex gap-2">
-                    <button onclick="createNewFile()" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-xs hover:bg-slate-700 active:scale-95 text-blue-400">
-                        <i class="fa-solid fa-plus"></i> New
-                    </button>
-                    <button onclick="openGitHubImportModal()" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-xs hover:bg-slate-700 active:scale-95 text-purple-400">
-                        <i class="fa-brands fa-github"></i> Import
-                    </button>
-                    <button id="import-btn" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-xs hover:bg-slate-700 active:scale-95 text-green-400">
-                         <i class="fa-solid fa-file-import"></i> JSON
-                    </button>
-                    <input type="file" id="import-file" class="hidden" accept=".json">
-                </div>
-            </div>
-            <div id="file-list" class="space-y-1 flex-1 overflow-y-auto">
-            </div>
-        </div>
-
-        <!-- 4. TEST TAB -->
-        <div id="tab-test" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">API Tester</h2>
-            <div class="flex gap-2 mb-3 shrink-0">
-                <select id="test-method" class="bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-blue-400 font-bold text-sm focus:outline-none w-24">
-                    <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-                </select>
-                <input type="text" id="test-url" placeholder="https://your-api.run.app/api/..." class="flex-1 bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-white text-sm focus:outline-none font-mono">
-            </div>
-            <div class="grid grid-cols-2 gap-2 mb-3 shrink-0">
-                <div class="flex flex-col">
-                    <label class="text-[10px] text-slate-400 mb-1 ml-1 uppercase font-bold">Headers (JSON)</label>
-                    <textarea id="test-headers" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs font-mono h-20 focus:outline-none resize-none text-slate-200">{"Content-Type": "application/json"}</textarea>
-                </div>
-                <div class="flex flex-col">
-                    <label class="text-[10px] text-slate-400 mb-1 ml-1 uppercase font-bold">Body (JSON)</label>
-                    <textarea id="test-body" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs font-mono h-20 focus:outline-none resize-none text-slate-200"></textarea>
-                </div>
-            </div>
-            <button id="test-send" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold mb-3 active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
-                <i class="fa-solid fa-paper-plane"></i> Send Request
-            </button>
-            <div class="flex-1 flex flex-col min-h-[120px]">
-                <div class="flex justify-between items-center mb-1 ml-1">
-                    <label class="text-[10px] text-slate-400 uppercase font-bold">Response</label>
-                    <span id="test-status" class="text-xs font-mono text-slate-500"></span>
-                </div>
-                <div class="bg-slate-950 rounded-xl border border-slate-700 p-3 flex-1 overflow-auto font-mono text-xs text-green-400 whitespace-pre-wrap" id="test-response">Waiting for request...</div>
-            </div>
-        </div>
-
-        <!-- 5. DEPLOY TAB (GCP) -->
-        <div id="tab-deploy" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">Deploy to Cloud Run</h2>
-            
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 mb-4">
-                <label class="text-xs text-slate-400 mb-1 block">GitHub Repository</label>
-                <div class="flex items-center gap-2 mb-3">
-                    <i class="fa-brands fa-github text-lg text-slate-300"></i>
-                    <input type="text" id="deploy-repo" placeholder="my-backend-api" class="flex-1 bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white focus:outline-none focus:border-blue-500 font-mono text-sm">
-                </div>
-
-                <label class="text-xs text-slate-400 mb-1 block">Visibility (新規作成時)</label>
-                <select id="deploy-visibility" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm mb-3 focus:outline-none">
-                    <option value="false">Public</option>
-                    <option value="true">Private</option>
-                </select>
-                
-                <div class="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 mb-3">
-                    <div>
-                        <span class="text-sm font-bold text-slate-200 block">CI/CD Workflow</span>
-                        <span class="text-[10px] text-slate-400">deploy.yml を自動生成</span>
-                    </div>
-                    <div class="toggle-track on" id="toggle-cicd" onclick="this.classList.toggle('on')">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 mb-3">
-                    <div>
-                        <span class="text-sm font-bold text-slate-200 block">GitHub Pages</span>
-                        <span class="text-[10px] text-slate-400">Pages を有効にする</span>
-                    </div>
-                    <div class="toggle-track" id="toggle-pages" onclick="this.classList.toggle('on')">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
-                
-                <button id="btn-deploy" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-lg text-sm">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Push & Deploy
-                </button>
-            </div>
-            
-            <div class="flex flex-col flex-1">
-                <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold ml-1">Deploy Progress</label>
-                <div class="bg-[#0d1117] rounded-xl border border-slate-700 p-3 flex-1 overflow-y-auto font-mono text-xs" id="deploy-logs">
-                    <div class="text-slate-500">Ready for deployment.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- WORKER TAB (Cloudflare) -->
-        <div id="tab-worker" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">Deploy to Cloudflare Worker</h2>
-            
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 mb-4">
-                <p class="text-xs text-slate-400 mb-4 leading-relaxed">
-                    Settingsタブで設定したTokenとAccount IDを使用して、エッジ環境にJavaScript Workerをデプロイします。<br>
-                    <span class="text-yellow-500 text-[10px]"><i class="fa-solid fa-triangle-exclamation"></i> AIにJSとwrangler.tomlを生成させてください</span>
-                </p>
-                <button id="btn-cf-deploy" class="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-400 hover:to-yellow-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-lg text-sm text-slate-900">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Deploy to CF Worker
-                </button>
-            </div>
-            
-            <div class="flex flex-col flex-1">
-                <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold ml-1">Worker Deploy Logs</label>
-                <div class="bg-[#0d1117] rounded-xl border border-slate-700 p-3 flex-1 overflow-y-auto font-mono text-xs" id="cf-deploy-logs">
-                    <div class="text-slate-500">Ready for deployment.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 6. INFRA TAB -->
-        <div id="tab-infra" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">Infrastructure</h2>
-            
-            <!-- Firestore Data Explorer -->
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 mb-3">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-database text-orange-400 mr-2"></i>Firestore Explorer</p>
-                    <div class="flex gap-2">
-                        <button onclick="addCollection()" class="text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
-                    </div>
-                </div>
-                <div id="firestore-collections" class="space-y-1 max-h-40 overflow-y-auto">
-                    <div class="text-xs text-slate-500 text-center py-3">No collections. Tap + to add.</div>
-                </div>
-            </div>
-
-            <!-- Security Rules -->
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 mb-3">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-shield-halved text-blue-400 mr-2"></i>Security Rules</p>
-                    <button onclick="generateRulesWithAI()" class="text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Gen</button>
-                </div>
-                <textarea id="firestore-rules" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 font-mono text-xs h-28 focus:outline-none resize-none text-slate-200" oninput="saveInfraData()">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}</textarea>
-            </div>
-            
-            <!-- GCP Environment Variables -->
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 mb-3">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-key text-green-400 mr-2"></i>GCP Env Variables</p>
-                    <button onclick="addEnvVar()" class="text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <div id="env-vars-list" class="space-y-1.5 max-h-40 overflow-y-auto">
-                </div>
-            </div>
-
-            <!-- CF Environment Variables -->
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 flex-1 min-h-[120px] flex flex-col">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="text-sm font-bold text-slate-200"><i class="fa-solid fa-cloud-bolt text-yellow-400 mr-2"></i>CF Env Variables</p>
-                    <button onclick="addCfEnvVar()" class="text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <div id="cf-env-vars-list" class="space-y-1.5 flex-1 overflow-y-auto">
-                </div>
-            </div>
-        </div>
-
-        <!-- 7. SETTINGS TAB -->
-        <div id="tab-settings" class="tab-content p-4 w-full h-full">
-            <h2 class="text-base font-bold mb-3 text-slate-200">Settings</h2>
-            <div class="space-y-3 pb-10">
-                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
-                    <div>
-                        <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">Gemini API Key</label>
-                        <input type="password" id="set-gemini" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">AI Model</label>
-                        <select id="set-model" class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white text-sm focus:outline-none">
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Balanced)</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Quality)</option>
-                            <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</option>
+        <!-- タブ: チャット (要件定義) -->
+        <div id="tab-chat" class="tab-content active flex-col h-full p-3 md:p-8 relative max-w-5xl mx-auto w-full">
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <h2 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">要件定義</h2>
+                <div class="flex items-center gap-3">
+                    <div class="relative shadow-sm rounded-xl">
+                        <select id="ai-model" class="appearance-none border border-slate-200 py-2.5 pl-4 pr-10 rounded-xl text-sm font-medium bg-white focus:ring-4 focus:ring-primary/20 outline-none cursor-pointer transition-all hover:border-primary/50 text-slate-700">
+                            <option value="gemini">Gemini 2.5 Flash</option>
+                            <option value="claude">Claude 3.5 Sonnet</option>
+                            <option value="gpt">GPT-3.5 Turbo</option>
                         </select>
-                    </div>
-                    
-                    <div class="mt-4 mb-2 border-t border-slate-700 pt-3">
-                        <span class="text-xs font-bold text-slate-300">GCP / GitHub Settings</span>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">GitHub PAT</label>
-                        <input type="password" id="set-github" placeholder="ghp_..." class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">GCP Project ID</label>
-                            <input type="text" id="set-gcp" placeholder="my-gcp-project" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none text-sm font-mono">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">Cloud Run Service</label>
-                            <input type="text" id="set-run" placeholder="backend-api" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none text-sm font-mono">
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
+                    <button onclick="clearChat()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all" title="会話をクリア">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="chat-history" class="flex-1 bg-transparent border-none rounded-none p-2 mb-2 overflow-y-auto flex flex-col gap-5 pb-6 scroll-smooth">
+                <!-- Javascriptで描画 -->
+            </div>
+            
+            <!-- 対話型要件定義 UI (リッチ化) -->
+            <div class="mt-auto flex flex-col gap-3 w-full shrink-0 sticky bottom-0 z-10 pt-2 pb-2 bg-gradient-to-t from-slate-100 via-slate-100 to-transparent">
+                <div class="flex gap-2 w-full relative group shadow-lg shadow-slate-200/50 rounded-2xl">
+                    <textarea id="chat-input" class="flex-1 border border-slate-200 p-4 pr-16 rounded-2xl resize-none text-base focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all duration-300 bg-white" rows="2" placeholder="作りたいアプリのアイデアを入力..."></textarea>
+                    <button onclick="sendChatMessage()" class="absolute right-2.5 bottom-2.5 bg-gradient-to-br from-primary to-blue-600 text-white p-3 rounded-xl hover:from-blue-600 hover:to-blue-700 font-bold shadow-md shadow-blue-500/30 transition-all duration-300 active:scale-95 shrink-0 flex items-center justify-center h-11 w-11" title="送信">
+                        <svg class="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V6m0 0l-7 7m7-7l7 7"></path></svg>
+                    </button>
+                </div>
+                <button onclick="generateCodeFromChat()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl hover:from-teal-500 hover:to-teal-600 font-extrabold shadow-xl shadow-emerald-500/20 transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 text-lg">
+                    <span class="text-2xl drop-shadow-md">⚡️</span> 要件からコードを生成する
+                </button>
+            </div>
+        </div>
 
-                    <div class="mt-4 mb-2 border-t border-slate-700 pt-3">
-                        <span class="text-xs font-bold text-slate-300">Cloudflare Worker Settings</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF Account ID</label>
-                            <input type="text" id="set-cf-account" placeholder="Account ID" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF Worker Name</label>
-                            <input type="text" id="set-cf-worker" placeholder="my-worker" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 mb-1 uppercase font-bold block ml-1">CF API Token</label>
-                        <input type="password" id="set-cf-token" placeholder="API Token" class="w-full bg-slate-900 border border-slate-700 py-2.5 px-3 rounded-xl text-white focus:border-blue-500 focus:outline-none text-sm font-mono">
-                    </div>
+        <!-- タブ: コード (編集) -->
+        <div id="tab-code" class="tab-content flex-col md:flex-row h-full relative">
+            <!-- 【モバイル】ファイル一覧トグルボタン -->
+            <div class="md:hidden flex justify-between items-center bg-white p-3.5 border-b border-slate-200 shadow-sm shrink-0 z-10">
+                <div class="flex items-center gap-2 truncate">
+                    <span class="text-xl">📄</span>
+                    <span class="font-extrabold text-slate-800 truncate tracking-tight" id="mobile-current-file">ファイル未選択</span>
+                </div>
+                <button onclick="toggleMobileFileList()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl shadow-sm text-sm font-bold transition-all flex items-center gap-1.5 active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> ファイル
+                </button>
+            </div>
+
+            <!-- ファイル一覧パネル -->
+            <div id="file-list-container" class="hidden md:flex flex-col w-full md:w-64 border-r border-slate-200 bg-white absolute md:relative z-20 inset-0 md:inset-auto shadow-2xl md:shadow-none transition-all duration-300">
+                <div class="p-5 font-extrabold border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                    <span class="text-slate-700 tracking-wide">エクスプローラー</span>
+                    <button onclick="toggleMobileFileList()" class="md:hidden text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1.5 rounded-lg transition-all">&times;</button>
+                </div>
+                <ul id="file-list" class="flex-1 overflow-y-auto py-3 px-2 space-y-1"></ul>
+            </div>
+            
+            <div class="flex-1 relative w-full h-full bg-[#272822]">
+                <div id="editor"></div>
+            </div>
+        </div>
+
+        <!-- タブ: デプロイ -->
+        <div id="tab-deploy" class="tab-content flex-col h-full p-4 md:p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+            <h2 class="text-2xl md:text-3xl font-extrabold mb-6 text-slate-800 tracking-tight">🚀 デプロイ</h2>
+            <div class="space-y-6">
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all hover:shadow-lg">
+                    <label class="block font-bold mb-2.5 text-slate-700 text-base">Worker名 <span class="text-slate-400 font-normal text-sm ml-1">(URLのプレフィックス)</span></label>
+                    <input type="text" id="worker-name" class="w-full border border-slate-200 bg-slate-50/50 p-4 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono" placeholder="my-awesome-app">
+                    <p class="text-sm text-slate-500 mt-3 flex items-center gap-1.5"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 既存の名前を入力すると上書きデプロイされます。</p>
                 </div>
                 
-                <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold active:scale-95 text-sm flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-check"></i> Save
+                <button onclick="deployToCloudflare()" class="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white p-4.5 rounded-2xl font-extrabold hover:from-red-500 hover:to-red-600 text-lg shadow-xl shadow-red-500/20 transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 h-16">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> Cloudflareへデプロイ
                 </button>
                 
-                <div class="p-3 bg-slate-800/50 border border-yellow-500/30 rounded-2xl">
-                    <h3 class="font-bold text-xs mb-2 text-yellow-500"><i class="fa-solid fa-lightbulb mr-1"></i> Setup Guide</h3>
-                    <ol class="text-[11px] space-y-2 text-slate-300 list-decimal pl-4">
-                        <li><a href="https://aistudio.google.com/" target="_blank" class="text-blue-400 underline">Google AI Studio</a>でGemini APIキーを取得</li>
-                        <li>GCP連携: GitHub PATを作成し、GCPプロジェクトとCloud Run連携</li>
-                        <li>CF連携: Cloudflare DashboardからAccount IDとAPI Tokenを取得</li>
-                    </ol>
-                </div>
-                
-                <div class="text-center pt-2">
-                    <button onclick="clearAllData()" class="text-red-500 text-xs hover:underline"><i class="fa-solid fa-triangle-exclamation"></i> 全データ削除</button>
+                <div class="bg-slate-900 rounded-2xl p-1 shadow-2xl relative overflow-hidden mt-8 border border-slate-800">
+                    <div class="absolute top-0 left-0 right-0 px-4 py-2.5 bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 text-xs text-slate-400 font-mono flex items-center gap-2">
+                        <div class="flex gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80"></div><div class="w-3 h-3 rounded-full bg-yellow-500/80"></div><div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <span class="ml-2 font-semibold tracking-wider opacity-80">Terminal</span>
+                    </div>
+                    <div id="deploy-log" class="mt-10 p-5 text-emerald-400 font-mono text-xs md:text-sm h-56 overflow-y-auto whitespace-pre-wrap break-all leading-relaxed">
+                        > 準備完了。デプロイ待機中...
+                    </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- タブ: 設定 -->
+        <div id="tab-settings" class="tab-content flex-col h-full p-4 md:p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+            <h2 class="text-2xl md:text-3xl font-extrabold mb-6 text-slate-800 tracking-tight">⚙️ 環境設定</h2>
+            <div class="space-y-6 pb-12">
+                
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all hover:shadow-lg">
+                    <h3 class="font-extrabold text-lg mb-5 text-slate-800 flex items-center gap-2"><span class="text-blue-500 text-xl">🤖</span> AI エンジン API Keys</h3>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">Gemini API Key</label>
+                            <input type="password" id="gemini-key" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">Claude API Key</label>
+                            <input type="password" id="claude-key" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">OpenAI API Key (GPT)</label>
+                            <input type="password" id="openai-key" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 transition-all hover:shadow-lg">
+                    <h3 class="font-extrabold text-lg mb-5 text-slate-800 flex items-center gap-2"><span class="text-orange-500 text-xl">☁️</span> Cloudflare 認証情報</h3>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">Account ID</label>
+                            <input type="text" id="cf-account-id" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-bold text-slate-600">API Token <span class="font-normal text-slate-400 text-xs ml-1">(Edit Workers権限)</span></label>
+                            <input type="password" id="cf-token" class="w-full border border-slate-200 bg-slate-50/50 p-3.5 rounded-xl text-base focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all font-mono">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <button onclick="saveSettings()" class="w-full md:w-auto bg-gradient-to-r from-primary to-blue-600 text-white px-10 py-4 rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] text-lg">設定を端末に保存</button>
+                    <span id="settings-msg" class="text-green-600 font-bold hidden bg-green-50 px-4 py-2 rounded-xl border border-green-100 shadow-sm animate-pulse">✓ 保存しました</span>
+                </div>
+
+                <!-- 履歴復元セクション -->
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-100 mt-8">
+                    <h3 class="font-extrabold text-lg mb-5 text-slate-800 flex items-center gap-2"><span class="text-purple-500 text-xl">⏳</span> 自動バックアップ <span class="text-sm font-normal text-slate-400">(直近5件)</span></h3>
+                    <ul id="backup-list" class="space-y-3"></ul>
+                </div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="bg-slate-900 border-t border-slate-800 grid grid-cols-8 h-[calc(var(--nav-height)+var(--safe-bottom))] pb-[var(--safe-bottom)] shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.3)] relative z-20">
-        <button class="nav-btn nav-active flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-chat">
-            <i class="fa-solid fa-message text-[16px]"></i><span class="text-[8px] font-bold">CHAT</span>
+    <!-- 【モバイル専用】ボトムナビゲーション (スマート化・固定) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md text-slate-400 flex border-t border-slate-100 z-30 pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.03)] h-[64px]">
+        <button onclick="switchTab('chat')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile text-primary transition-all" id="nav-mobile-chat">
+            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💬</span>要件
         </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-code">
-            <i class="fa-solid fa-code text-[16px]"></i><span class="text-[8px] font-bold">CODE</span>
+        <button onclick="switchTab('code')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-code">
+            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">💻</span>コード
         </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-structure">
-            <i class="fa-solid fa-folder-tree text-[16px]"></i><span class="text-[8px] font-bold">FILES</span>
+        <button onclick="switchTab('deploy')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-deploy">
+            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">🚀</span>デプロイ
         </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-test">
-            <i class="fa-solid fa-flask text-[16px]"></i><span class="text-[8px] font-bold">TEST</span>
-        </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-deploy">
-            <i class="fa-solid fa-rocket text-[16px]"></i><span class="text-[8px] font-bold">GCP</span>
-        </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-worker">
-            <i class="fa-solid fa-cloud-bolt text-[16px]"></i><span class="text-[8px] font-bold">WORKER</span>
-        </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-infra">
-            <i class="fa-solid fa-server text-[16px]"></i><span class="text-[8px] font-bold">INFRA</span>
-        </button>
-        <button class="nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-300 pt-1" data-target="tab-settings">
-            <i class="fa-solid fa-gear text-[16px]"></i><span class="text-[8px] font-bold">CFG</span>
+        <button onclick="switchTab('settings')" class="flex-1 py-1.5 text-center text-[11px] font-bold flex flex-col items-center justify-center nav-btn-mobile transition-all hover:text-slate-600" id="nav-mobile-settings">
+            <span class="text-2xl mb-0.5 drop-shadow-sm transition-transform active:scale-90">⚙️</span>設定
         </button>
     </nav>
 
-    <!-- GitHub Import Modal -->
-    <div id="gh-import-modal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 class="text-sm font-bold text-white"><i class="fa-brands fa-github mr-2"></i>GitHub Import</h3>
-                <button onclick="document.getElementById('gh-import-modal').classList.remove('show')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <div id="gh-import-step-repo">
-                    <input id="gh-import-search" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded-lg text-sm text-white focus:outline-none mb-2" placeholder="Search repositories..." oninput="filterImportRepos()">
-                    <div id="gh-import-status" class="text-xs text-slate-500 text-center py-2"></div>
-                    <ul id="gh-import-repo-list" class="space-y-1 max-h-60 overflow-y-auto"></ul>
-                </div>
-                <div id="gh-import-step-file" style="display:none">
-                    <button onclick="backToImportRepoList()" class="text-xs bg-slate-700 text-white px-3 py-1.5 rounded-lg mb-2"><i class="fa-solid fa-arrow-left mr-1"></i>Back</button>
-                    <div id="gh-import-file-status" class="text-xs text-slate-500 text-center py-2"></div>
-                    <ul id="gh-import-file-list" class="space-y-1 max-h-60 overflow-y-auto"></ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firestore Document Editor Modal -->
-    <div id="doc-editor-modal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 class="text-sm font-bold text-white" id="doc-editor-title">Document</h3>
-                <button onclick="document.getElementById('doc-editor-modal').classList.remove('show')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <label class="text-[10px] text-slate-400 mb-1 block">Document ID</label>
-                <input type="text" id="doc-editor-id" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded-lg text-sm text-white font-mono focus:outline-none mb-3">
-                <label class="text-[10px] text-slate-400 mb-1 block">Data (JSON)</label>
-                <textarea id="doc-editor-data" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-slate-200 font-mono h-40 focus:outline-none resize-none">{}</textarea>
-                <button onclick="saveDocument()" class="w-full bg-green-600 hover:bg-green-500 py-2.5 rounded-xl font-bold text-sm mt-3"><i class="fa-solid fa-check mr-1"></i>Save</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        /* ====================== 1. STATE & DB ====================== */
-        const db = new Dexie("AIBackendStudioDB");
-        db.version(2).stores({
-            settings: 'id',
-            chat: '++id, role, text, timestamp',
-            files: 'path, content, type, timestamp',
-            history: '++id, method, url, timestamp',
-            infra: 'id, rules, envVars, collections'
-        });
-
-        let currentSettings = { gemini: '', github: '', gcp: '', run: '', model: 'gemini-2.5-flash', cfAccount: '', cfToken: '', cfWorker: '' };
-        let activeFile = null;
-        let editor = null;
+        // === グローバル状態 ===
+        let appState = {
+            files: [], // {name: 'index.js', content: '...'}
+            currentFileIndex: 0,
+            timestamp: null,
+            chatMessages: [] // 会話履歴 [{role: 'user'|'assistant', content: '...'}]
+        };
+        let editor;
+        let saveTimeout;
         let wakeLock = null;
-        let isGenerating = false;
-        let ghImportRepos = [];
-        let infraData = { rules: '', envVars: [], collections: [], cfEnvVars: [] };
 
-        const elStatusText = document.querySelector('.status-text');
-        const elStatusDot = document.querySelector('.status-dot');
-
-        function updateStatus(text, colorClass) {
-            elStatusText.textContent = text;
-            elStatusDot.className = `fa-solid fa-circle text-[6px] status-dot ${colorClass}`;
+        // === PWA Service Worker 動的登録 ===
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'ai-worker-studio-v4';
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('activate', e => self.clients.claim());
+                self.addEventListener('fetch', e => {
+                    e.respondWith(
+                        fetch(e.request).catch(() => caches.match(e.request))
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
         }
 
-        /* ====================== 2. WAKE LOCK ====================== */
-        async function requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-            }
-        }
-        function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
-
-        /* ====================== 3. AI WORKER ====================== */
-        const workerCode = `
-            self.onmessage = async function(e) {
-                const { apiKey, model, prompt, history, filesContext } = e.data;
-                try {
-                    const contents = history.map(h => ({
-                        role: h.role === 'user' ? 'user' : 'model',
-                        parts: [{ text: h.text }]
+        // === AI動的Web Worker作成 ===
+        const aiWorkerCode = `
+        self.onmessage = async function(e) {
+            const { messages, model, geminiKey, claudeKey, openaiKey, isCodeGeneration } = e.data;
+            try {
+                let resultText = "";
+                
+                if (model === 'gemini') {
+                    if(!geminiKey) throw new Error("Gemini API Keyが未設定です。設定タブを確認してください。");
+                    
+                    const contents = messages.map(m => ({
+                        role: m.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: m.content }]
                     }));
-                    let fullPrompt = "Current project files:\\n" + filesContext + "\\n\\nUser Request: " + prompt;
-                    contents.push({ role: "user", parts: [{ text: fullPrompt }] });
-
-                    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey, {
+                    
+                    const generationConfig = isCodeGeneration ? { response_mime_type: "application/json" } : {};
+                    
+                    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents, generationConfig })
+                    });
+                    const data = await response.json();
+                    if(data.error) throw new Error(data.error.message);
+                    resultText = data.candidates[0].content.parts[0].text;
+                } 
+                else if (model === 'claude') {
+                    if(!claudeKey) throw new Error("Claude API Keyが未設定です。設定タブを確認してください。");
+                    
+                    const anthropicMessages = messages.map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content
+                    }));
+                    
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': claudeKey,
+                            'anthropic-version': '2023-06-01',
+                            'anthropic-dangerous-direct-browser-access': 'true'
+                        },
                         body: JSON.stringify({
-                            system_instruction: {
-                                parts: [{text: \`You are an expert full-stack developer creating API applications (FastAPI/Flask for GCP Cloud Run, or JavaScript/TypeScript for Cloudflare Workers).
-Your response MUST be a valid JSON object and NOTHING ELSE. No markdown, no extra text.
-Format:
-{
-  "message": "Brief explanation in Markdown (Japanese preferred).",
-  "files": [
-    { "path": "main.py", "content": "full file content here" }
-  ]
-}
-If generating a Cloudflare Worker, ALWAYS include wrangler.toml and an entry point file (e.g., src/index.js or index.js).
-If modifying existing files, return the FULL updated content. Always include ALL project files.
-Use Japanese for the message field.\`}]
-                            },
-                            contents: contents,
-                            generationConfig: { temperature: 0.2 }
+                            model: 'claude-3-5-sonnet-20240620',
+                            max_tokens: 4000,
+                            messages: anthropicMessages
                         })
                     });
-
-                    if(!response.ok) throw new Error('API Error: ' + response.status);
                     const data = await response.json();
-                    if(!data.candidates || data.candidates.length === 0) throw new Error('No content generated');
-                    
-                    const text = data.candidates[0].content.parts[0].text;
-                    let jsonStr = text.trim();
-                    if (jsonStr.startsWith('\\\`\\\`\\\`json')) jsonStr = jsonStr.substring(7);
-                    else if (jsonStr.startsWith('\\\`\\\`\\\`')) jsonStr = jsonStr.substring(3);
-                    if (jsonStr.endsWith('\\\`\\\`\\\`')) jsonStr = jsonStr.slice(0, -3);
-                    
-                    const firstBrace = jsonStr.indexOf('{');
-                    const lastBrace = jsonStr.lastIndexOf('}');
-                    if (firstBrace !== -1 && lastBrace !== -1) jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-
-                    try {
-                        self.postMessage({ success: true, data: JSON.parse(jsonStr), raw: text });
-                    } catch (parseError) {
-                        self.postMessage({ success: false, error: 'JSON parse failed: ' + parseError.message, raw: text });
-                    }
-                } catch (err) {
-                    self.postMessage({ success: false, error: err.message });
+                    if(data.error) throw new Error(data.error.message);
+                    resultText = data.content[0].text;
                 }
-            };
-        `;
-        const aiWorker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
-
-        /* ====================== 4. NAV ====================== */
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const targetId = e.currentTarget.getAttribute('data-target');
-                document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('nav-active'); b.classList.add('text-slate-500'); });
-                e.currentTarget.classList.add('nav-active');
-                e.currentTarget.classList.remove('text-slate-500');
-                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-                document.getElementById(targetId).classList.add('active');
-                if(targetId === 'tab-code' && editor) setTimeout(() => editor.refresh(), 10);
-                if(targetId === 'tab-structure') renderFileList();
-                if(targetId === 'tab-infra') renderInfra();
-            });
-        });
-
-        const chatInput = document.getElementById('chat-input');
-        chatInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if(this.value === '') this.style.height = 'auto'; });
-
-        /* ====================== 5. INIT ====================== */
-        async function initApp() {
-            const saved = await db.settings.get('default');
-            if (saved) {
-                currentSettings = { ...currentSettings, ...saved };
-                document.getElementById('set-gemini').value = saved.gemini || '';
-                document.getElementById('set-github').value = saved.github || '';
-                document.getElementById('set-gcp').value = saved.gcp || '';
-                document.getElementById('set-run').value = saved.run || '';
-                document.getElementById('set-model').value = saved.model || 'gemini-2.5-flash';
-                document.getElementById('deploy-repo').value = saved.run || '';
-                document.getElementById('set-cf-account').value = saved.cfAccount || '';
-                document.getElementById('set-cf-token').value = saved.cfToken || '';
-                document.getElementById('set-cf-worker').value = saved.cfWorker || '';
-            }
-
-            // Load infra data
-            const savedInfra = await db.infra.get('default');
-            if (savedInfra) {
-                infraData = { ...infraData, ...savedInfra };
-                document.getElementById('firestore-rules').value = infraData.rules || '';
-            }
-
-            editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
-                mode: "python", theme: "monokai", lineNumbers: true, lineWrapping: true,
-                indentUnit: 4, matchBrackets: true, viewportMargin: Infinity
-            });
-
-            let timeoutId;
-            editor.on('change', () => {
-                if(!activeFile) return;
-                document.getElementById('save-status').textContent = 'Editing...';
-                document.getElementById('save-status').className = 'text-[10px] text-yellow-500';
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(async () => {
-                    await db.files.put({ path: activeFile, content: editor.getValue(), type: getModeForPath(activeFile), timestamp: Date.now() });
-                    document.getElementById('save-status').textContent = 'Saved';
-                    document.getElementById('save-status').className = 'text-[10px] text-slate-500';
-                }, 800);
-            });
-
-            const chats = await db.chat.orderBy('id').toArray();
-            chats.forEach(c => appendChatMessage(c.role, c.text, false));
-            renderFileList();
-            renderInfra();
-
-            if ('serviceWorker' in navigator) {
-                const swBlob = new Blob(["self.addEventListener('fetch', function(e) {});"], {type: 'application/javascript'});
-                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
-            }
-        }
-
-        /* ====================== 6. SETTINGS ====================== */
-        async function saveSettings() {
-            const btn = document.querySelector('button[onclick="saveSettings()"]');
-            currentSettings = {
-                id: 'default',
-                gemini: document.getElementById('set-gemini').value.trim(),
-                github: document.getElementById('set-github').value.trim(),
-                gcp: document.getElementById('set-gcp').value.trim(),
-                run: document.getElementById('set-run').value.trim(),
-                model: document.getElementById('set-model').value,
-                cfAccount: document.getElementById('set-cf-account').value.trim(),
-                cfToken: document.getElementById('set-cf-token').value.trim(),
-                cfWorker: document.getElementById('set-cf-worker').value.trim()
-            };
-            await db.settings.put(currentSettings);
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Saved!';
-            btn.classList.replace('bg-blue-600', 'bg-green-600');
-            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-check"></i> Save'; btn.classList.replace('bg-green-600', 'bg-blue-600'); }, 2000);
-        }
-
-        async function clearAllData() {
-            if(confirm('全てのローカルデータを削除しますか？この操作は元に戻せません。')) {
-                await db.delete();
-                location.reload();
-            }
-        }
-
-        /* ====================== 7. CHAT ====================== */
-        function appendChatMessage(role, text, saveToDb = true) {
-            const container = document.getElementById('chat-history');
-            const div = document.createElement('div');
-            div.className = `flex flex-col ${role === 'user' ? 'items-end' : 'items-start'} w-full`;
-            if (role === 'user') {
-                div.innerHTML = `<div class="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm text-sm whitespace-pre-wrap max-w-[90%] break-words">${DOMPurify.sanitize(text)}</div>`;
-            } else {
-                div.innerHTML = `<div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-700 text-sm markdown-body max-w-[95%] w-full overflow-hidden">${DOMPurify.sanitize(marked.parse(text))}</div>`;
-            }
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            if (saveToDb) db.chat.add({ role, text, timestamp: Date.now() });
-        }
-
-        function showTypingIndicator() {
-            const container = document.getElementById('chat-history');
-            const div = document.createElement('div');
-            div.id = 'typing-indicator';
-            div.className = 'flex flex-col items-start w-full';
-            div.innerHTML = `<div class="bg-slate-800 text-slate-400 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-700 typing-indicator"><span></span><span></span><span></span></div>`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-        function hideTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
-
-        document.getElementById('send-btn').addEventListener('click', handleChatSubmit);
-        document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(); } });
-
-        async function handleChatSubmit() {
-            if (isGenerating) return;
-            const input = document.getElementById('chat-input');
-            const prompt = input.value.trim();
-            if (!prompt) return;
-            if (!currentSettings.gemini) { alert('Settings から Gemini API Key を設定してください'); document.querySelector('[data-target="tab-settings"]').click(); return; }
-
-            input.value = ''; input.style.height = 'auto';
-            appendChatMessage('user', prompt);
-            isGenerating = true;
-            updateStatus('Generating...', 'text-yellow-400 animate-pulse');
-            document.getElementById('send-btn').disabled = true;
-            showTypingIndicator();
-            await requestWakeLock();
-
-            const history = await db.chat.orderBy('id').toArray();
-            const recentHistory = history.slice(-6);
-            const allFiles = await db.files.toArray();
-            let filesContext = allFiles.map(f => `--- ${f.path} ---\n${f.content}\n`).join('\n') || "No files currently exist.";
-
-            aiWorker.postMessage({ apiKey: currentSettings.gemini, model: currentSettings.model || 'gemini-2.5-flash', prompt, history: recentHistory, filesContext });
-        }
-
-        aiWorker.onmessage = async function(e) {
-            isGenerating = false;
-            releaseWakeLock();
-            hideTypingIndicator();
-            document.getElementById('send-btn').disabled = false;
-            updateStatus('Ready', 'text-green-500');
-
-            if (e.data.success) {
-                const r = e.data.data;
-                appendChatMessage('model', r.message || "Done.");
-                if (r.files && Array.isArray(r.files)) {
-                    for (const file of r.files) {
-                        if (file.path && file.content !== undefined) {
-                            await db.files.put({ path: file.path, content: file.content, type: getModeForPath(file.path), timestamp: Date.now() });
-                        }
+                else if (model === 'gpt') {
+                    if(!openaiKey) throw new Error("OpenAI API Keyが未設定です。設定タブを確認してください。");
+                    
+                    const openaiMessages = messages.map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content
+                    }));
+                    
+                    const bodyPayload = {
+                        model: 'gpt-3.5-turbo',
+                        messages: openaiMessages
+                    };
+                    if(isCodeGeneration) {
+                        bodyPayload.response_format = { type: "json_object" };
                     }
-                    renderFileList();
-                    if(!activeFile && r.files.find(f => f.path.includes('index.js') || f.path === 'main.py')) {
-                        openFile(r.files.find(f => f.path.includes('index.js') || f.path === 'main.py').path);
-                    } else if (r.files.length > 0) openFile(r.files[0].path);
-                }
-            } else {
-                let errMsg = `**Error:** ${e.data.error}`;
-                if (e.data.raw) errMsg += `\n\n<details><summary>Raw output</summary>\n\n\`\`\`\n${e.data.raw.substring(0, 500)}\n\`\`\`\n</details>`;
-                appendChatMessage('model', errMsg);
-            }
-        };
-
-        /* ====================== 8. FILE SYSTEM ====================== */
-        function getModeForPath(path) {
-            if (path.endsWith('.py')) return 'python';
-            if (path.endsWith('.yml') || path.endsWith('.yaml')) return 'yaml';
-            if (path.endsWith('.toml')) return 'toml';
-            if (path.includes('Dockerfile')) return 'dockerfile';
-            if (path.endsWith('.json') || path.endsWith('.js') || path.endsWith('.ts')) return 'javascript';
-            if (path.endsWith('.md')) return 'markdown';
-            return 'text/plain';
-        }
-
-        function getIconForPath(path) {
-            if (path.endsWith('.py')) return '<i class="fa-brands fa-python text-yellow-400 w-4"></i>';
-            if (path.endsWith('.yml') || path.endsWith('.yaml')) return '<i class="fa-solid fa-gear text-purple-400 w-4"></i>';
-            if (path.endsWith('.toml')) return '<i class="fa-solid fa-file-code text-slate-300 w-4"></i>';
-            if (path.includes('Dockerfile')) return '<i class="fa-brands fa-docker text-blue-400 w-4"></i>';
-            if (path.endsWith('.txt')) return '<i class="fa-solid fa-file-lines text-slate-300 w-4"></i>';
-            if (path.endsWith('.md')) return '<i class="fa-solid fa-file-alt text-slate-300 w-4"></i>';
-            if (path.endsWith('.json')) return '<i class="fa-solid fa-brackets-curly text-green-400 w-4"></i>';
-            if (path.endsWith('.js') || path.endsWith('.ts')) return '<i class="fa-brands fa-js text-yellow-400 w-4"></i>';
-            return '<i class="fa-solid fa-file text-slate-400 w-4"></i>';
-        }
-
-        async function renderFileList() {
-            const files = await db.files.toArray();
-            const container = document.getElementById('file-list');
-            container.innerHTML = '';
-            if (files.length === 0) { container.innerHTML = '<div class="text-xs text-slate-500 text-center py-8">No files yet. Ask AI to create a project.</div>'; return; }
-            files.sort((a, b) => a.path.localeCompare(b.path));
-            files.forEach(f => {
-                const item = document.createElement('div');
-                item.className = `flex justify-between items-center p-2.5 rounded-lg cursor-pointer border ${activeFile === f.path ? 'bg-blue-900/30 border-blue-500/50' : 'bg-slate-800 border-slate-700 hover:bg-slate-750'}`;
-                item.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden flex-1" onclick="openFile('${f.path.replace(/'/g, "\\'")}')">
-                        ${getIconForPath(f.path)}
-                        <span class="text-xs font-mono text-slate-200 truncate">${f.path}</span>
-                    </div>
-                    <button onclick="deleteFile('${f.path.replace(/'/g, "\\'")}', event)" class="text-slate-500 hover:text-red-400 px-1.5"><i class="fa-solid fa-trash text-xs"></i></button>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        window.openFile = async function(path) {
-            const file = await db.files.get(path);
-            if (!file) return;
-            activeFile = path;
-            document.getElementById('current-file-name').textContent = path;
-            document.getElementById('code-file-icon').outerHTML = getIconForPath(path).replace('w-4', 'id="code-file-icon"');
-            editor.setOption("mode", getModeForPath(path));
-            editor.setValue(file.content);
-            document.getElementById('save-status').textContent = 'Loaded';
-            document.getElementById('save-status').className = 'text-[10px] text-green-500';
-            document.querySelector('[data-target="tab-code"]').click();
-            setTimeout(() => editor.refresh(), 50);
-            renderFileList();
-        };
-
-        window.createNewFile = async function() {
-            const path = prompt("ファイルパスを入力 (例: src/index.js):");
-            if (path && path.trim()) {
-                if (await db.files.get(path)) return alert("既に存在します");
-                await db.files.put({ path, content: "", type: getModeForPath(path), timestamp: Date.now() });
-                openFile(path);
-            }
-        };
-
-        window.deleteFile = async function(path, e) {
-            e.stopPropagation();
-            if(confirm(`${path} を削除しますか？`)) {
-                await db.files.delete(path);
-                if (activeFile === path) { activeFile = null; editor.setValue(""); document.getElementById('current-file-name').textContent = "No file"; }
-                renderFileList();
-            }
-        };
-
-        window.exportProject = async function() {
-            const files = await db.files.toArray();
-            const blob = new Blob([JSON.stringify({ version: 1, files }, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backend-project-${Date.now()}.json`; a.click();
-        };
-
-        document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
-        document.getElementById('import-file').addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.files) { for(const f of data.files) await db.files.put(f); alert("Import完了！"); renderFileList(); }
-                } catch (err) { alert("Invalid file."); }
-            };
-            reader.readAsText(file);
-        });
-
-        /* ====================== 9. API TESTER ====================== */
-        document.getElementById('test-send').addEventListener('click', async () => {
-            const method = document.getElementById('test-method').value;
-            const url = document.getElementById('test-url').value;
-            if(!url) return alert("URLを入力してください");
-            let headers = {}, body = null;
-            const btn = document.getElementById('test-send');
-            const resBox = document.getElementById('test-response');
-            const statusBox = document.getElementById('test-status');
-            try {
-                const h = document.getElementById('test-headers').value;
-                if(h) headers = JSON.parse(h);
-                const b = document.getElementById('test-body').value;
-                if(b && ['POST', 'PUT', 'PATCH'].includes(method)) { body = b; if(headers['Content-Type']?.includes('json')) JSON.parse(b); }
-            } catch (err) { return alert("Invalid JSON: " + err.message); }
-
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-            resBox.textContent = "Loading..."; statusBox.textContent = "";
-            const t0 = performance.now();
-            try {
-                const response = await fetch(url, { method, headers, body });
-                const ms = Math.round(performance.now() - t0) + 'ms';
-                statusBox.textContent = `${response.status} ${response.statusText} • ${ms}`;
-                statusBox.className = `text-xs font-mono font-bold ${response.ok ? 'text-green-500' : 'text-red-500'}`;
-                const ct = response.headers.get("content-type");
-                resBox.textContent = ct && ct.includes("json") ? JSON.stringify(await response.json(), null, 2) : await response.text();
-                resBox.className = `bg-slate-950 rounded-xl border border-slate-700 p-3 flex-1 overflow-auto font-mono text-xs whitespace-pre-wrap ${response.ok ? 'text-green-400' : 'text-red-400'}`;
-                db.history.add({ method, url, timestamp: Date.now() });
-            } catch (err) {
-                statusBox.textContent = "Error"; statusBox.className = "text-xs font-mono font-bold text-red-500";
-                resBox.textContent = "Network error or CORS blocked.\n" + err.message;
-                resBox.className = "bg-slate-950 rounded-xl border border-red-900/50 p-3 flex-1 overflow-auto font-mono text-xs text-red-400 whitespace-pre-wrap";
-            } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Request'; }
-        });
-
-        /* ====================== 10. REAL GITHUB DEPLOY ====================== */
-        function addDeployLog(msg, cls = 'text-slate-300') {
-            const box = document.getElementById('deploy-logs');
-            const el = document.createElement('div');
-            el.className = cls + ' py-0.5';
-            el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            box.appendChild(el);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function encodeBase64Unicode(str) {
-            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1)));
-        }
-
-        document.getElementById('btn-deploy').addEventListener('click', async () => {
-            const repoName = document.getElementById('deploy-repo').value.trim();
-            const token = currentSettings.github;
-            if (!token) return alert("Settings から GitHub PAT を設定してください");
-            if (!repoName) return alert("Repository name を入力してください");
-
-            const btn = document.getElementById('btn-deploy');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
-            document.getElementById('deploy-logs').innerHTML = '';
-
-            const gh = (path, opts = {}) => fetch('https://api.github.com' + path, {
-                ...opts,
-                headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json', ...opts.headers }
-            });
-
-            try {
-                addDeployLog('認証中...', 'text-blue-400');
-                const userRes = await gh('/user');
-                if (!userRes.ok) throw new Error('認証失敗 (' + userRes.status + ')');
-                const user = await userRes.json();
-                const username = user.login;
-                addDeployLog(`✓ ${username} として認証`, 'text-green-400');
-
-                addDeployLog(`リポジトリ ${repoName} を確認中...`);
-                let repoRes = await gh(`/repos/${username}/${repoName}`);
-                if (!repoRes.ok) {
-                    addDeployLog(`リポジトリを新規作成中...`, 'text-yellow-400');
-                    const isPrivate = document.getElementById('deploy-visibility').value === 'true';
-                    const createRes = await gh('/user/repos', {
+                    
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
-                        body: JSON.stringify({ name: repoName, auto_init: true, private: isPrivate })
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + openaiKey
+                        },
+                        body: JSON.stringify(bodyPayload)
                     });
-                    if (!createRes.ok) { const e = await createRes.json(); throw new Error(e.message || 'Repo creation failed'); }
-                    addDeployLog('✓ リポジトリ作成完了', 'text-green-400');
-                    await new Promise(r => setTimeout(r, 2000));
-                } else {
-                    addDeployLog('✓ 既存リポジトリを使用', 'text-green-400');
+                    const data = await response.json();
+                    if(data.error) throw new Error(data.error.message);
+                    resultText = data.choices[0].message.content;
                 }
 
-                const cicdEnabled = document.getElementById('toggle-cicd').classList.contains('on');
-                if (cicdEnabled) {
-                    addDeployLog('deploy.yml を生成中...', 'text-yellow-400');
-                    const deployYml = `name: Deploy to Cloud Run
-on:
-  push:
-    branches: [ "main" ]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: \${{ secrets.GCP_CREDENTIALS }}
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${currentSettings.run || repoName}
-          source: ./
-          region: us-central1
-`;
-                    await db.files.put({ path: '.github/workflows/deploy.yml', content: deployYml, type: 'yaml', timestamp: Date.now() });
-                    addDeployLog('✓ deploy.yml 追加', 'text-green-400');
-                }
-
-                const allFiles = await db.files.toArray();
-                addDeployLog(`${allFiles.length} ファイルをプッシュ中...`);
-
-                for (const f of allFiles) {
-                    const url = `/repos/${username}/${repoName}/contents/${f.path}`;
-                    let sha = null;
-                    try {
-                        const getRes = await gh(url + '?ref=main');
-                        if (getRes.ok) { const d = await getRes.json(); sha = d.sha; }
-                    } catch (e) {}
-
-                    const body = { message: `Update ${f.path} via AI Backend Studio`, content: encodeBase64Unicode(f.content), branch: 'main' };
-                    if (sha) body.sha = sha;
-
-                    let putRes = await gh(url, { method: 'PUT', body: JSON.stringify(body) });
-
-                    if (putRes.status === 409 || putRes.status === 422) {
-                        addDeployLog(`  ${f.path}: SHA conflict, retrying...`, 'text-yellow-400');
-                        try {
-                            const r2 = await gh(url + '?ref=main');
-                            if (r2.ok) { const d2 = await r2.json(); body.sha = d2.sha; }
-                        } catch (e) {}
-                        putRes = await gh(url, { method: 'PUT', body: JSON.stringify(body) });
-                    }
-
-                    if (putRes.ok) {
-                        addDeployLog(`  ✓ ${f.path}`, 'text-green-400');
-                    } else {
-                        const err = await putRes.json().catch(() => ({}));
-                        addDeployLog(`  ✗ ${f.path}: ${err.message || putRes.status}`, 'text-red-400');
-                    }
-                }
-
-                const pagesEnabled = document.getElementById('toggle-pages').classList.contains('on');
-                if (pagesEnabled) {
-                    addDeployLog('GitHub Pages を有効化中...', 'text-blue-400');
-                    try {
-                        await gh(`/repos/${username}/${repoName}/pages`, {
-                            method: 'POST',
-                            body: JSON.stringify({ source: { branch: 'main', path: '/' } })
-                        });
-                        addDeployLog('✓ GitHub Pages 有効化', 'text-green-400');
-                    } catch (e) { addDeployLog('Pages: 既に有効化済み or error', 'text-slate-400'); }
-                }
-
-                if (cicdEnabled) {
-                    addDeployLog('GitHub Actions ワークフロー起動待ち...', 'text-purple-400');
-                    await new Promise(r => setTimeout(r, 5000));
-                    try {
-                        const runsRes = await gh(`/repos/${username}/${repoName}/actions/runs?per_page=1`);
-                        if (runsRes.ok) {
-                            const runsData = await runsRes.json();
-                            if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
-                                const run = runsData.workflow_runs[0];
-                                addDeployLog(`Actions: ${run.status} (${run.conclusion || 'running'})`, run.conclusion === 'success' ? 'text-green-400' : 'text-yellow-400');
-                                addDeployLog(`→ https://github.com/${username}/${repoName}/actions`, 'text-blue-400');
-                            }
-                        }
-                    } catch (e) {}
-                }
-
-                const repoUrl = `https://github.com/${username}/${repoName}`;
-                addDeployLog('', 'text-slate-700');
-                addDeployLog(`✅ デプロイ完了！`, 'text-green-400 font-bold');
-                addDeployLog(`📁 ${repoUrl}`, 'text-blue-400');
-                if (pagesEnabled) addDeployLog(`🌐 https://${username}.github.io/${repoName}/`, 'text-blue-400');
-
-                renderFileList();
-
+                self.postMessage({ success: true, data: resultText, isCodeGeneration });
             } catch (err) {
-                addDeployLog(`❌ Error: ${err.message}`, 'text-red-500 font-bold');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Push & Deploy';
+                self.postMessage({ success: false, error: err.message, isCodeGeneration });
             }
-        });
+        };`;
+        const aiWorkerBlob = new Blob([aiWorkerCode], { type: 'application/javascript' });
+        const aiWorker = new Worker(URL.createObjectURL(aiWorkerBlob));
 
-        /* ====================== 11. GITHUB IMPORT ====================== */
-        async function openGitHubImportModal() {
-            if (!currentSettings.github) return alert('Settings から GitHub PAT を設定してください');
-            document.getElementById('gh-import-modal').classList.add('show');
-            document.getElementById('gh-import-step-repo').style.display = '';
-            document.getElementById('gh-import-step-file').style.display = 'none';
-            document.getElementById('gh-import-search').value = '';
-            fetchImportRepos();
+        // === ユーティリティ・UI制御 ===
+        function showLoading(text) {
+            document.getElementById('loading-text').innerText = text;
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        }
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('flex');
+            overlay.classList.add('hidden');
         }
 
-        async function fetchImportRepos() {
-            const status = document.getElementById('gh-import-status');
-            status.textContent = '読み込み中...';
+        async function requestWakeLock() {
             try {
-                const res = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', { headers: { 'Authorization': 'Bearer ' + currentSettings.github } });
-                if (!res.ok) throw new Error('認証エラー');
-                ghImportRepos = await res.json();
-                status.textContent = ghImportRepos.length + ' repos';
-                renderImportRepos(ghImportRepos);
-            } catch (e) { status.textContent = 'Error: ' + e.message; }
+                if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) { console.warn('WakeLock:', err.message); }
+        }
+        function releaseWakeLock() {
+            if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
         }
 
-        function renderImportRepos(repos) {
-            const list = document.getElementById('gh-import-repo-list');
+        // === 初期化 ===
+        window.onload = async () => {
+            // エディタの初期化
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/javascript");
+            editor.setOptions({
+                fontSize: window.innerWidth < 768 ? "13px" : "15px",
+                scrollPastEnd: 0.5,
+                wrap: true
+            });
+            
+            // オートセーブ
+            editor.session.on('change', () => {
+                if(appState.files.length > 0) {
+                    appState.files[appState.currentFileIndex].content = editor.getValue();
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(saveProject, 2000); 
+                }
+            });
+
+            await loadSettings();
+            await loadProject();
+            await updateBackupList();
+            
+            // UI初期化 (Chatタブ表示)
+            switchTab('chat');
+        };
+
+        // === タブ切り替え ===
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            // PC Navigation Styling (Rich Update)
+            document.querySelectorAll('.nav-btn-pc').forEach(el => {
+                el.classList.remove('bg-slate-800/80', 'text-white', 'border-primary');
+                el.classList.add('border-transparent', 'text-slate-300');
+            });
+            const activeNavPc = document.getElementById(`nav-${tabId}`);
+            if(activeNavPc) {
+                activeNavPc.classList.remove('border-transparent', 'text-slate-300');
+                activeNavPc.classList.add('bg-slate-800/80', 'text-white', 'border-primary');
+            }
+
+            // Mobile Navigation Styling
+            document.querySelectorAll('.nav-btn-mobile').forEach(el => {
+                el.classList.remove('text-primary');
+                el.classList.add('text-slate-400');
+            });
+            const activeNavMobile = document.getElementById(`nav-mobile-${tabId}`);
+            if(activeNavMobile) {
+                activeNavMobile.classList.remove('text-slate-400');
+                activeNavMobile.classList.add('text-primary');
+            }
+
+            if (tabId === 'code') {
+                updateFileList();
+                setTimeout(() => editor.resize(), 50);
+            } else if (tabId === 'settings') {
+                updateBackupList();
+            }
+        }
+
+        function toggleMobileFileList() {
+            const container = document.getElementById('file-list-container');
+            container.classList.toggle('hidden');
+            container.classList.toggle('flex');
+        }
+
+        // === 設定管理 (IndexedDB) ===
+        async function saveSettings() {
+            await localforage.setItem('geminiKey', document.getElementById('gemini-key').value);
+            await localforage.setItem('claudeKey', document.getElementById('claude-key').value);
+            await localforage.setItem('openaiKey', document.getElementById('openai-key').value);
+            
+            await localforage.setItem('cfAccountId', document.getElementById('cf-account-id').value);
+            await localforage.setItem('cfToken', document.getElementById('cf-token').value);
+            await localforage.setItem('workerName', document.getElementById('worker-name').value);
+            
+            const msg = document.getElementById('settings-msg');
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 2000);
+        }
+
+        async function loadSettings() {
+            document.getElementById('gemini-key').value = await localforage.getItem('geminiKey') || '';
+            document.getElementById('claude-key').value = await localforage.getItem('claudeKey') || '';
+            document.getElementById('openai-key').value = await localforage.getItem('openaiKey') || '';
+            
+            document.getElementById('cf-account-id').value = await localforage.getItem('cfAccountId') || '';
+            document.getElementById('cf-token').value = await localforage.getItem('cfToken') || '';
+            document.getElementById('worker-name').value = await localforage.getItem('workerName') || 'my-awesome-worker';
+        }
+
+        // === プロジェクト保存・バックアップ ===
+        async function saveProject() {
+            appState.timestamp = Date.now();
+            
+            let history = await localforage.getItem('appState_history') || [];
+            if(history.length === 0 || JSON.stringify(history[0].files) !== JSON.stringify(appState.files) || JSON.stringify(history[0].chatMessages) !== JSON.stringify(appState.chatMessages)) {
+                history.unshift(JSON.parse(JSON.stringify(appState)));
+                if(history.length > 5) history.pop();
+                await localforage.setItem('appState_history', history);
+            }
+
+            await localforage.setItem('appState', appState);
+            const now = new Date();
+            document.querySelectorAll('.save-status-text').forEach(el => {
+                el.innerText = `保存済 (${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')})`;
+            });
+            if(document.getElementById('tab-settings').classList.contains('active')) updateBackupList();
+        }
+
+        async function loadProject() {
+            const saved = await localforage.getItem('appState');
+            if(saved) {
+                appState = {
+                    files: saved.files || [],
+                    currentFileIndex: saved.currentFileIndex || 0,
+                    timestamp: saved.timestamp || null,
+                    chatMessages: saved.chatMessages || []
+                };
+                if(appState.files.length > 0) loadFileIntoEditor(appState.currentFileIndex);
+            }
+            renderChatHistory();
+        }
+
+        async function updateBackupList() {
+            const history = await localforage.getItem('appState_history') || [];
+            const list = document.getElementById('backup-list');
             list.innerHTML = '';
-            repos.forEach(r => {
+            if(history.length === 0) {
+                list.innerHTML = '<li class="text-sm text-slate-400 p-2">バックアップはありません</li>';
+                return;
+            }
+            history.forEach((state, idx) => {
                 const li = document.createElement('li');
-                li.className = 'p-2.5 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-700 flex justify-between items-center';
-                li.innerHTML = `<span class="text-xs text-slate-200">${r.private ? '🔒' : '🌐'} ${r.name}</span><span class="text-[10px] text-slate-500">${new Date(r.updated_at).toLocaleDateString()}</span>`;
-                li.onclick = () => selectImportRepo(r);
+                li.className = "flex justify-between items-center bg-slate-50 p-3.5 border border-slate-100 rounded-xl text-sm shadow-sm transition-all hover:shadow";
+                const timeStr = new Date(state.timestamp).toLocaleString();
+                li.innerHTML = `<span class="font-medium text-slate-600">${timeStr} <span class="text-slate-400 font-normal ml-1">(${state.files.length}ファイル)</span></span> 
+                                <button onclick="restoreBackup(${idx})" class="bg-white border border-slate-200 text-blue-600 px-4 py-1.5 rounded-lg hover:bg-blue-50 font-bold shadow-sm transition-all active:scale-95 text-xs">復元</button>`;
                 list.appendChild(li);
             });
         }
 
-        function filterImportRepos() {
-            const q = document.getElementById('gh-import-search').value.toLowerCase();
-            renderImportRepos(ghImportRepos.filter(r => r.name.toLowerCase().includes(q)));
-        }
-
-        async function selectImportRepo(repo) {
-            document.getElementById('gh-import-step-repo').style.display = 'none';
-            document.getElementById('gh-import-step-file').style.display = '';
-            const status = document.getElementById('gh-import-file-status');
-            status.textContent = `${repo.full_name} のファイルを取得中...`;
-            try {
-                let res = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/main?recursive=1`, { headers: { 'Authorization': 'Bearer ' + currentSettings.github } });
-                if (!res.ok) res = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/master?recursive=1`, { headers: { 'Authorization': 'Bearer ' + currentSettings.github } });
-                if (!res.ok) throw new Error('Branch not found');
-                const tree = await res.json();
-                const files = tree.tree.filter(f => f.type === 'blob');
-                status.textContent = `${files.length} files`;
-                const list = document.getElementById('gh-import-file-list');
-                list.innerHTML = '';
-                files.forEach(f => {
-                    const li = document.createElement('li');
-                    li.className = 'p-2 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-700 flex justify-between items-center';
-                    li.innerHTML = `<span class="text-xs font-mono text-slate-200">${getIconForPath(f.path)} ${f.path}</span><span class="text-[10px] text-slate-500">${f.size > 1024 ? (f.size/1024).toFixed(1)+'KB' : f.size+'B'}</span>`;
-                    li.onclick = () => loadImportFile(repo.full_name, f.path);
-                    list.appendChild(li);
-                });
-            } catch (e) { status.textContent = 'Error: ' + e.message; }
-        }
-
-        async function loadImportFile(fullName, path) {
-            const status = document.getElementById('gh-import-file-status');
-            status.textContent = `${path} を読み込み中...`;
-            try {
-                const res = await fetch(`https://api.github.com/repos/${fullName}/contents/${path}`, {
-                    headers: { 'Authorization': 'Bearer ' + currentSettings.github, 'Accept': 'application/vnd.github.v3.raw' }
-                });
-                if (!res.ok) throw new Error('File fetch error');
-                const text = await res.text();
-                await db.files.put({ path, content: text, type: getModeForPath(path), timestamp: Date.now() });
-                status.textContent = `✓ ${path} imported`;
-                renderFileList();
-            } catch (e) { status.textContent = 'Error: ' + e.message; }
-        }
-
-        function backToImportRepoList() {
-            document.getElementById('gh-import-step-repo').style.display = '';
-            document.getElementById('gh-import-step-file').style.display = 'none';
-        }
-
-        /* ====================== 12. INFRA (Firestore, Env Vars, CF Env) ====================== */
-        async function saveInfraData() {
-            infraData.rules = document.getElementById('firestore-rules').value;
-            infraData.id = 'default';
-            await db.infra.put(infraData);
-        }
-
-        function renderInfra() {
-            renderCollections();
-            renderEnvVars();
-            renderCfEnvVars();
-        }
-
-        function renderCollections() {
-            const container = document.getElementById('firestore-collections');
-            container.innerHTML = '';
-            if (!infraData.collections || infraData.collections.length === 0) {
-                container.innerHTML = '<div class="text-xs text-slate-500 text-center py-3">No collections</div>';
-                return;
+        async function restoreBackup(index) {
+            if(!confirm("現在の状態は上書きされます。復元しますか？")) return;
+            const history = await localforage.getItem('appState_history') || [];
+            if(history[index]) {
+                appState = history[index];
+                await saveProject(); 
+                if(appState.files.length > 0) loadFileIntoEditor(appState.currentFileIndex);
+                renderChatHistory();
+                updateFileList();
+                alert("復元しました。");
             }
-            infraData.collections.forEach((col, ci) => {
-                const div = document.createElement('div');
-                div.className = 'bg-slate-900 border border-slate-700 rounded-lg p-2';
-                let docsHtml = '';
-                if (col.documents && col.documents.length > 0) {
-                    docsHtml = col.documents.map((doc, di) => `
-                        <div class="flex items-center justify-between text-[10px] pl-4 py-0.5">
-                            <span class="font-mono text-slate-400 cursor-pointer hover:text-white" onclick="editDocument(${ci}, ${di})">📄 ${doc.id}</span>
-                            <button onclick="removeDocument(${ci}, ${di})" class="text-slate-600 hover:text-red-400"><i class="fa-solid fa-xmark text-[8px]"></i></button>
-                        </div>
-                    `).join('');
-                }
-                div.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-200"><i class="fa-solid fa-folder text-yellow-500 mr-1"></i>${col.name}</span>
-                        <div class="flex gap-1">
-                            <button onclick="addDocument(${ci})" class="text-blue-400 text-[10px] px-1"><i class="fa-solid fa-plus"></i></button>
-                            <button onclick="removeCollection(${ci})" class="text-slate-500 hover:text-red-400 text-[10px] px-1"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    ${docsHtml}
-                `;
-                container.appendChild(div);
-            });
         }
 
-        window.addCollection = function() {
-            const name = prompt("Collection name:");
-            if (name && name.trim()) {
-                if (!infraData.collections) infraData.collections = [];
-                infraData.collections.push({ name: name.trim(), documents: [] });
-                saveInfraData(); renderCollections();
-            }
-        };
-
-        window.removeCollection = function(ci) {
-            if (confirm(`${infraData.collections[ci].name} を削除しますか？`)) {
-                infraData.collections.splice(ci, 1);
-                saveInfraData(); renderCollections();
-            }
-        };
-
-        window.addDocument = function(ci) {
-            const id = prompt("Document ID:") || `doc_${Date.now()}`;
-            infraData.collections[ci].documents.push({ id, data: '{}' });
-            saveInfraData(); renderCollections();
-        };
-
-        window.removeDocument = function(ci, di) {
-            infraData.collections[ci].documents.splice(di, 1);
-            saveInfraData(); renderCollections();
-        };
-
-        let editingDoc = null;
-        window.editDocument = function(ci, di) {
-            editingDoc = { ci, di };
-            const doc = infraData.collections[ci].documents[di];
-            document.getElementById('doc-editor-title').textContent = `${infraData.collections[ci].name} / ${doc.id}`;
-            document.getElementById('doc-editor-id').value = doc.id;
-            document.getElementById('doc-editor-data').value = doc.data;
-            document.getElementById('doc-editor-modal').classList.add('show');
-        };
-
-        window.saveDocument = function() {
-            if (!editingDoc) return;
-            const { ci, di } = editingDoc;
-            infraData.collections[ci].documents[di].id = document.getElementById('doc-editor-id').value;
-            infraData.collections[ci].documents[di].data = document.getElementById('doc-editor-data').value;
-            saveInfraData(); renderCollections();
-            document.getElementById('doc-editor-modal').classList.remove('show');
-        };
-
-        function renderEnvVars() {
-            const container = document.getElementById('env-vars-list');
-            container.innerHTML = '';
-            if (!infraData.envVars || infraData.envVars.length === 0) {
-                container.innerHTML = '<div class="text-xs text-slate-500 text-center py-3">No env vars</div>';
-                return;
-            }
-            infraData.envVars.forEach((ev, i) => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700';
-                div.innerHTML = `
-                    <input type="text" value="${ev.key}" class="w-1/3 bg-transparent text-xs text-blue-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateEnvVar(${i}, 'key', this.value)">
-                    <span class="text-slate-500">=</span>
-                    <input type="password" value="${ev.value}" class="flex-1 bg-transparent text-xs text-green-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateEnvVar(${i}, 'value', this.value)">
-                    <button onclick="removeEnvVar(${i})" class="text-slate-500 hover:text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>
-                `;
-                container.appendChild(div);
-            });
+        // === APIキー 検証 ===
+        async function getApiKeys() {
+            return {
+                geminiKey: await localforage.getItem('geminiKey'),
+                claudeKey: await localforage.getItem('claudeKey'),
+                openaiKey: await localforage.getItem('openaiKey')
+            };
+        }
+        
+        async function checkApiKeys() {
+            const model = document.getElementById('ai-model').value;
+            const keys = await getApiKeys();
+            if(model === 'gemini' && !keys.geminiKey) { alert("Gemini API Keyを設定してください。"); switchTab('settings'); return false; }
+            if(model === 'claude' && !keys.claudeKey) { alert("Claude API Keyを設定してください。"); switchTab('settings'); return false; }
+            if(model === 'gpt' && !keys.openaiKey) { alert("OpenAI API Keyを設定してください。"); switchTab('settings'); return false; }
+            return true;
         }
 
-        window.addEnvVar = function() {
-            if (!infraData.envVars) infraData.envVars = [];
-            infraData.envVars.push({ key: 'NEW_KEY', value: '' });
-            saveInfraData(); renderEnvVars();
-        };
+        // === チャット (要件定義フェーズ) ===
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chat-input');
+            const input = inputEl.value.trim();
+            if(!input) return;
 
-        window.removeEnvVar = function(i) {
-            infraData.envVars.splice(i, 1);
-            saveInfraData(); renderEnvVars();
-        };
+            if(!(await checkApiKeys())) return;
 
-        window.updateEnvVar = function(i, field, val) {
-            infraData.envVars[i][field] = val;
-            saveInfraData();
-        };
-
-        function renderCfEnvVars() {
-            const container = document.getElementById('cf-env-vars-list');
-            container.innerHTML = '';
-            if (!infraData.cfEnvVars || infraData.cfEnvVars.length === 0) {
-                container.innerHTML = '<div class="text-xs text-slate-500 text-center py-3">No CF env vars</div>';
-                return;
-            }
-            infraData.cfEnvVars.forEach((ev, i) => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700';
-                div.innerHTML = `
-                    <input type="text" value="${ev.key}" class="w-1/3 bg-transparent text-xs text-yellow-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateCfEnvVar(${i}, 'key', this.value)">
-                    <span class="text-slate-500">=</span>
-                    <input type="password" value="${ev.value}" class="flex-1 bg-transparent text-xs text-green-300 font-mono focus:outline-none border-b border-transparent focus:border-blue-500" onchange="updateCfEnvVar(${i}, 'value', this.value)">
-                    <button onclick="removeCfEnvVar(${i})" class="text-slate-500 hover:text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        window.addCfEnvVar = function() {
-            if (!infraData.cfEnvVars) infraData.cfEnvVars = [];
-            infraData.cfEnvVars.push({ key: 'NEW_KEY', value: '' });
-            saveInfraData(); renderCfEnvVars();
-        };
-
-        window.removeCfEnvVar = function(i) {
-            infraData.cfEnvVars.splice(i, 1);
-            saveInfraData(); renderCfEnvVars();
-        };
-
-        window.updateCfEnvVar = function(i, field, val) {
-            infraData.cfEnvVars[i][field] = val;
-            saveInfraData();
-        };
-
-        window.generateRulesWithAI = async function() {
-            if (!currentSettings.gemini) return alert('Gemini API Key を設定してください');
-            if (!infraData.collections || infraData.collections.length === 0) return alert('先にコレクションを追加してください');
-
-            const colNames = infraData.collections.map(c => c.name).join(', ');
-            const prompt = `Generate Firestore security rules for collections: ${colNames}. Return ONLY the rules code, no explanation, no markdown.`;
+            appState.chatMessages.push({ role: 'user', content: input });
+            appendChatUI("あなた", input);
+            inputEl.value = "";
             
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentSettings.model || 'gemini-2.5-flash'}:generateContent?key=${currentSettings.gemini}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const data = await res.json();
-                if (data.candidates?.[0]) {
-                    let rules = data.candidates[0].content.parts[0].text;
-                    rules = rules.replace(/^```[a-z]*\s*/i, '').replace(/```$/g, '').trim();
-                    document.getElementById('firestore-rules').value = rules;
-                    infraData.rules = rules;
-                    saveInfraData();
-                    alert('Rules generated!');
-                }
-            } catch (e) { alert('Error: ' + e.message); }
-        };
+            // API送信用配列（要件定義を深める指示を付与）
+            const messagesForAPI = [...appState.chatMessages];
+            const chatPrompt = `\n\n(指示: コードを生成するのではなく、これまでの会話内容を理解し、要件定義を深めるための次の発言・質問をしてください。回答は簡潔にお願いします。)`;
+            messagesForAPI[messagesForAPI.length - 1] = { 
+                role: 'user', 
+                content: messagesForAPI[messagesForAPI.length - 1].content + chatPrompt 
+            };
 
-        /* ====================== 13. CLOUDFLARE WORKER DEPLOY ====================== */
-        function addCfDeployLog(msg, cls = 'text-slate-300') {
-            const box = document.getElementById('cf-deploy-logs');
-            const el = document.createElement('div');
-            el.className = cls + ' py-0.5';
-            el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            box.appendChild(el);
-            box.scrollTop = box.scrollHeight;
+            showLoading("AIが思考中...");
+            await requestWakeLock();
+
+            const model = document.getElementById('ai-model').value;
+            const keys = await getApiKeys();
+
+            aiWorker.onmessage = async function(e) {
+                hideLoading();
+                releaseWakeLock();
+                if(e.data.success && !e.data.isCodeGeneration) {
+                    const reply = e.data.data;
+                    appState.chatMessages.push({ role: 'assistant', content: reply });
+                    appendChatUI("AI", reply);
+                    await saveProject();
+                } else if(!e.data.success) {
+                    appendChatUI("エラー", "通信エラー: " + e.data.error);
+                }
+            };
+
+            aiWorker.postMessage({ messages: messagesForAPI, model, ...keys, isCodeGeneration: false });
         }
 
-        document.getElementById('btn-cf-deploy').addEventListener('click', async () => {
-            const token = currentSettings.cfToken;
-            const accountId = currentSettings.cfAccount;
-            const scriptName = currentSettings.cfWorker;
-            
-            if (!token || !accountId || !scriptName) return alert("Settings から Cloudflare の設定(Token, Account ID, Worker Name)を完了してください");
+        // === コード生成フェーズ ===
+        async function generateCodeFromChat() {
+            if(appState.chatMessages.length === 0) {
+                alert("先にアイデアを入力し、送信ボタンでAIと対話を開始してください。");
+                return;
+            }
+            if(!(await checkApiKeys())) return;
 
-            const btn = document.getElementById('btn-cf-deploy');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deploying...';
-            document.getElementById('cf-deploy-logs').innerHTML = '';
+            const messagesForAPI = [...appState.chatMessages];
+            const codeGenPrompt = `\n\nこれまでの会話内容の要件をすべて満たす、Cloudflare Workerのプログラムを作成してください。
+必ず以下のJSON形式のみを出力してください。マークダウン（\`\`\`json など）や説明文は一切不要です。
+{
+  "files": [
+    {"name": "index.js", "content": "ここにコード（Worker形式）"}
+  ]
+}`;
+
+            const lastMsg = messagesForAPI[messagesForAPI.length - 1];
+            if (lastMsg && lastMsg.role === 'user') {
+                messagesForAPI[messagesForAPI.length - 1] = { role: 'user', content: lastMsg.content + codeGenPrompt };
+            } else {
+                messagesForAPI.push({ role: 'user', content: codeGenPrompt });
+            }
+
+            showLoading("コードを生成中...");
+            await requestWakeLock();
+
+            const model = document.getElementById('ai-model').value;
+            const keys = await getApiKeys();
+
+            aiWorker.onmessage = async function(e) {
+                hideLoading();
+                releaseWakeLock();
+                if(e.data.success && e.data.isCodeGeneration) {
+                    try {
+                        let cleanJson = e.data.data.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
+                        const parsed = JSON.parse(cleanJson);
+                        if(!parsed.files || !Array.isArray(parsed.files)) throw new Error("不正なフォーマット");
+                        
+                        appState.files = parsed.files;
+                        appState.currentFileIndex = 0;
+                        
+                        const successMsg = "コードの生成が完了しました！「コード編集」タブを開いて確認してください。";
+                        appendChatUI("AI", successMsg);
+                        appState.chatMessages.push({ role: 'assistant', content: successMsg });
+                        
+                        await saveProject(); 
+                        switchTab('code');
+                    } catch(err) {
+                        console.error(err, e.data.data);
+                        appendChatUI("エラー", "生成データの解析に失敗しました。もう一度生成ボタンを押してください。");
+                    }
+                } else if(!e.data.success) {
+                    appendChatUI("エラー", "生成に失敗しました: " + e.data.error);
+                }
+            };
+
+            aiWorker.postMessage({ messages: messagesForAPI, model, ...keys, isCodeGeneration: true });
+        }
+
+        // === チャットUI ===
+        function renderChatHistory() {
+            const historyEl = document.getElementById('chat-history');
+            historyEl.innerHTML = `
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md text-sm text-slate-700 leading-relaxed font-medium">
+                    <span class="text-xl mb-1 block">👋</span> Cloudflare Workerで作りたいAPIやアプリのアイデアを教えてください。<br><br>
+                    対話して要件を整理した後、下の<b class="text-emerald-600">「⚡️ 要件からコードを生成する」</b>ボタンを押すと、自動でプログラムが組まれます。
+                </div>`;
+            appState.chatMessages.forEach(msg => {
+                appendChatUI(msg.role === 'user' ? 'あなた' : 'AI', msg.content);
+            });
+            historyEl.scrollTop = historyEl.scrollHeight;
+        }
+
+        function appendChatUI(sender, message) {
+            const history = document.getElementById('chat-history');
+            const div = document.createElement('div');
+            
+            // リッチ化されたチャットバブル
+            if (sender === "あなた") {
+                div.className = "bg-gradient-to-br from-primary to-blue-600 text-white p-4 md:p-5 rounded-2xl rounded-tr-sm max-w-[90%] md:max-w-2xl self-end shadow-md shadow-blue-500/20 whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            } else if (sender === "エラー") {
+                div.className = "bg-red-50 text-red-700 border border-red-200 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            } else {
+                div.className = "bg-white border border-slate-200 text-slate-700 p-4 md:p-5 rounded-2xl rounded-tl-sm max-w-[90%] md:max-w-2xl self-start shadow-md whitespace-pre-wrap text-sm leading-relaxed font-medium";
+            }
+            
+            div.innerText = message;
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        async function clearChat() {
+            if(confirm("会話履歴をクリアしますか？")) {
+                appState.chatMessages = [];
+                renderChatHistory();
+                await saveProject();
+            }
+        }
+
+        // === ファイル・エディタ管理 ===
+        function updateFileList() {
+            const list = document.getElementById('file-list');
+            list.innerHTML = '';
+            appState.files.forEach((file, index) => {
+                const li = document.createElement('li');
+                const isActive = index === appState.currentFileIndex;
+                li.className = `p-3.5 rounded-xl cursor-pointer text-sm truncate transition-all duration-200 border-l-4 ${isActive ? 'bg-blue-50/80 font-bold border-primary text-primary shadow-sm' : 'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`;
+                li.innerHTML = `<span class="mr-2 opacity-70">📄</span>${file.name}`;
+                li.onclick = () => loadFileIntoEditor(index);
+                list.appendChild(li);
+            });
+        }
+
+        function loadFileIntoEditor(index) {
+            if(!appState.files[index]) return;
+            appState.currentFileIndex = index;
+            editor.setValue(appState.files[index].content, -1);
+            
+            document.getElementById('mobile-current-file').innerText = appState.files[index].name;
+
+            const ext = appState.files[index].name.split('.').pop();
+            if(ext === 'json') editor.session.setMode("ace/mode/json");
+            else if(ext === 'html') editor.session.setMode("ace/mode/html");
+            else editor.session.setMode("ace/mode/javascript");
+            
+            updateFileList();
+
+            if(window.innerWidth < 768) {
+                const container = document.getElementById('file-list-container');
+                if(!container.classList.contains('hidden')) toggleMobileFileList();
+            }
+        }
+
+        // === デプロイ ===
+        async function deployToCloudflare() {
+            const accountId = document.getElementById('cf-account-id').value;
+            const token = document.getElementById('cf-token').value;
+            let workerName = document.getElementById('worker-name').value || 'my-awesome-worker';
+            const logEl = document.getElementById('deploy-log');
+
+            if(!accountId || !token) {
+                alert("設定タブでCloudflareのAccount ID, API Tokenを設定してください。");
+                switchTab('settings');
+                return;
+            }
+
+            const mainFile = appState.files.find(f => f.name === 'index.js' || f.name === 'worker.js');
+            if(!mainFile) {
+                logEl.innerText = "> [エラー] デプロイには 'index.js' または 'worker.js' が必要です。";
+                return;
+            }
+
+            logEl.innerText = `> [${new Date().toLocaleTimeString()}] デプロイ開始: ${workerName}...\n`;
+            showLoading("デプロイ中...");
+            await requestWakeLock();
 
             try {
-                addCfDeployLog('デプロイ準備中...', 'text-blue-400');
-                const allFiles = await db.files.toArray();
-                const jsFiles = allFiles.filter(f => f.path.endsWith('.js') || f.path.endsWith('.ts'));
-                if (jsFiles.length === 0) throw new Error("WorkerのJS/TSファイルが見つかりません。AIに生成させてください。");
-                
-                let mainFile = jsFiles.find(f => f.path === 'src/index.js' || f.path === 'index.js' || f.path === 'worker.js') || jsFiles[0];
-
-                const formData = new FormData();
-                
-                const bindings = [];
-                if (infraData.cfEnvVars) {
-                    infraData.cfEnvVars.forEach(ev => {
-                        if (ev.key && ev.value) {
-                            bindings.push({ name: ev.key, type: "secret_text", text: ev.value });
-                        }
-                    });
-                }
-
-                const metadata = {
-                    main_module: mainFile.path,
-                    bindings: bindings
-                };
-                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-                
-                jsFiles.forEach(f => {
-                    const mime = f.path.endsWith('.ts') ? 'application/typescript' : 'application/javascript+module';
-                    formData.append(f.path, new Blob([f.content], { type: mime }), f.path);
-                });
-
-                addCfDeployLog(`Worker [${scriptName}] をアップロード中...`, 'text-yellow-400');
-
-                const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+                const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`;
+                const response = await fetch(url, {
                     method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/javascript'
+                    },
+                    body: mainFile.content
                 });
 
-                const result = await res.json();
-                if (!res.ok) {
-                    throw new Error(result.errors?.[0]?.message || 'Deploy failed');
+                const result = await response.json();
+                
+                if(result.success) {
+                    logEl.innerText += `> [成功] デプロイ完了！🚀\n`;
+                    logEl.innerText += `> 👉 https://${workerName}.<your-subdomain>.workers.dev\n`;
+                } else {
+                    logEl.innerText += `> [エラー] ${JSON.stringify(result.errors, null, 2)}\n`;
                 }
-
-                addCfDeployLog('✓ デプロイ成功！', 'text-green-400 font-bold');
-                addCfDeployLog(`🌐 https://${scriptName}.${accountId}.workers.dev/`, 'text-blue-400');
-
             } catch (err) {
-                addCfDeployLog(`❌ Error: ${err.message}`, 'text-red-500 font-bold');
+                logEl.innerText += `> [ネットワークエラー] ${err.message}\n`;
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Deploy to CF Worker';
+                hideLoading();
+                releaseWakeLock();
             }
-        });
+        }
 
-        /* ====================== START ====================== */
-        initApp();
+        // === ZIP エクスポート ===
+        async function exportProject() {
+            if(appState.files.length === 0) return alert("エクスポートするファイルがありません。");
+            
+            const zip = new JSZip();
+            appState.files.forEach(file => {
+                zip.file(file.name, file.content);
+            });
+            
+            zip.file("project_meta.json", JSON.stringify({
+                workerName: document.getElementById('worker-name').value,
+                timestamp: Date.now(),
+                chatMessages: appState.chatMessages
+            }));
+
+            const content = await zip.generateAsync({type:"blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `${document.getElementById('worker-name').value || 'aws-project'}.zip`;
+            a.click();
+        }
+
+        // === ZIP インポート ===
+        async function importProject(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            try {
+                const zip = await JSZip.loadAsync(file);
+                appState.files = [];
+                
+                for (let filename of Object.keys(zip.files)) {
+                    const fileData = zip.files[filename];
+                    if(!fileData.dir) {
+                        const content = await fileData.async("string");
+                        if(filename === "project_meta.json") {
+                            const meta = JSON.parse(content);
+                            if(meta.workerName) document.getElementById('worker-name').value = meta.workerName;
+                            if(meta.chatMessages) appState.chatMessages = meta.chatMessages;
+                        } else {
+                            appState.files.push({ name: filename, content: content });
+                        }
+                    }
+                }
+                
+                appState.currentFileIndex = 0;
+                await saveProject();
+                renderChatHistory();
+                switchTab('code');
+                alert("インポートが完了しました。");
+            } catch(err) {
+                alert("ZIPの読み込みに失敗しました: " + err.message);
+            }
+            event.target.value = '';
+        }
     </script>
 </body>
 </html>
